@@ -3,268 +3,1530 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🚀 Myflashcard - V2</title>
+    <title>MyFlashcard v8 (AI Engine & Safety Draft)</title>
     <style>
         :root {
-            --bg: #f0f4f8; --container-bg: #ffffff; --text-main: #333333;
-            --text-sub: #666666; --card-front: #ffffff; --primary: #4A90E2;
-            --success: #28a745; --danger: #dc3545; --shadow: rgba(0,0,0,0.05);
-            --border: #dddddd; --folder-bg: #f1c40f;
+            --bg: #ebf1f5; --container-bg: #ffffff; --text-main: #2d3748;
+            --text-sub: #718096; --card-front: #ffffff; --primary: #3182ce;
+            --success: #28a745; --danger: #dc3545; --shadow: rgba(0, 0, 0, 0.05);
+            --border: #e2e8f0; --folder-bg: #ecc94b; --secondary: #6c757d;
         }
         [data-theme="dark"] {
-            --bg: #121212; --container-bg: #1e1e1e; --text-main: #e0e0e0;
-            --text-sub: #b0b0b0; --card-front: #2d2d2d; --shadow: rgba(0,0,0,0.3);
-            --border: #444444;
+            --bg: #1a202c; --container-bg: #2d3748; --text-main: #edf2f7;
+            --text-sub: #cbd5e0; --card-front: #4a5568; --shadow: rgba(0,0,0,0.3);
+            --border: #4a5568;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); transition: 0.3s; -webkit-tap-highlight-color: transparent; }
-        .container { max-width: 600px; margin: auto; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text-main); transition: 0.3s; }
+        .container { max-width: 1000px; margin: auto; }
         .hidden { display: none !important; }
-
-        /* --- FOLDER & DECK ITEMS --- */
-        .folder-wrapper { background: var(--container-bg); border-radius: 12px; margin-bottom: 12px; border-left: 8px solid var(--folder-bg); box-shadow: 0 4px 6px var(--shadow); overflow: hidden; }
-        .folder-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; }
-        .folder-content { padding: 8px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.02); }
         
-        .card-item { 
-            background: var(--container-bg); padding: 12px 15px; border-radius: 10px; 
-            margin-bottom: 8px; display: flex; justify-content: space-between; 
-            align-items: center; box-shadow: 0 2px 5px var(--shadow); 
-            border-left: 5px solid var(--primary); position: relative;
-            user-select: none;
-        }
+        .box { background: var(--container-bg); padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px var(--shadow); margin-bottom: 20px; border: 1px solid var(--border); }
+        .app-title { text-align: center; font-size: 32px; font-weight: bold; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-main); }
+        
+        .creator-dash-box { border: 2px dashed #4299e1; border-radius: 12px; padding: 20px; margin-bottom: 25px; background: rgba(66, 153, 225, 0.02); }
+        
+        .card-item-ui { background: var(--container-bg); padding: 18px 25px; border-radius: 14px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px var(--shadow); border: 1px solid var(--border); border-left: 6px solid #4299e1; user-select: none; transition: transform 0.2s; }
+        .card-item-ui:hover { transform: translateY(-2px); }
+        .editable-text { cursor: pointer; padding: 2px 5px; border-radius: 4px; transition: 0.2s; display: inline-block; }
+        .editable-text:hover { background: rgba(66, 153, 225, 0.15); }
+        .inline-edit-input { font-size: inherit; font-family: inherit; width: 90%; padding: 4px 8px; border: 1px solid var(--primary); border-radius: 4px; background: var(--container-bg); color: var(--text-main); }
 
-        /* --- RANK COLORS --- */
-        .rank-1 { color: #28a745 !important; }
-        .rank-2 { color: #4a90e2 !important; }
-        .rank-3 { color: #9b59b6 !important; }
-        .rank-4 { color: #f1c40f !important; }
-        .rank-5 { color: #e67e22 !important; }
-        .rank-7 { 
-            background: linear-gradient(to right, #ff5e5e, #f9d423, #6cfd9f, #6ae9ff, #c392ff, #ff5e5e); 
-            background-size: 200% auto; 
+        .btn-main { background: var(--success); color: white; width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .btn-main:hover { opacity: 0.9; }
+        .btn-danger-sm { background: var(--danger); color: white; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+        .btn-secondary-sm { background: #e2e8f0; color: #4a5568; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+        [data-theme="dark"] .btn-secondary-sm { background: #4a5568; color: #edf2f7; }
+        .btn-back-style { background: #cbd5e0; color: #2d3748; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; }
+        
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 10px; background: var(--container-bg); color: var(--text-main); box-sizing: border-box; font-size: 15px; }
+        
+        .action-menu-container { position: relative; display: inline-block; }
+        .btn-dots { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-sub); padding: 5px 10px; border-radius: 50%; transition: 0.2s; }
+        .btn-dots:hover { background: rgba(0,0,0,0.05); color: var(--text-main); }
+        .dropdown-menu { position: absolute; right: 0; top: 100%; background: var(--container-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow); z-index: 100; min-width: 140px; display: none; }
+        .dropdown-menu button { width: 100%; background: none; border: none; padding: 10px 15px; text-align: left; font-size: 14px; cursor: pointer; color: var(--text-main); }
+        .dropdown-menu button:hover { background: rgba(66, 153, 225, 0.1); }
+        
+        .zone-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .zone-header:hover { opacity: 0.8; }
+
+        .fc-top-bar { background: var(--container-bg); border-radius: 14px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px var(--shadow); margin-bottom: 20px; border: 1px solid var(--border); gap: 5px; }
+        .fc-stop-btn { background: #cbd5e0; border: none; width: 45px; height: 40px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #4a5568; }
+        .fc-stat-col { text-align: center; flex: 1; }
+        .fc-stat-num { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+        .fc-stat-lbl { font-size: 10px; color: var(--text-sub); white-space: nowrap; }
+
+        .flashcard-stage { width: 100%; height: 360px; perspective: 1000px; margin-bottom: 25px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; cursor: pointer; }
+        .flashcard-stage.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-size: 32px; padding: 30px; text-align: center; border: 1px solid var(--border); box-sizing: border-box; background: var(--container-bg); box-shadow: 0 6px 20px var(--shadow); color: var(--text-main); }
+        .card-back { background: #4299e1; color: white; transform: rotateY(180deg); border: none; }
+
+        .btn-choice-grid { display: flex; gap: 15px; margin-bottom: 15px; }
+        .btn-choice-grid > button { flex: 1; padding: 15px; border-radius: 10px; border: none; color: white; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-undo-style { width: 100%; background: #718096; color: white; padding: 12px; border-radius: 10px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+        .rank-grey { color: #a0aec0 !important; }
+        .rank-green { color: #28a745 !important; }
+        .rank-blue { color: #007bff !important; }
+        .rank-purple { color: #6f42c1 !important; }
+        .rank-gold { color: #ffc107 !important; }
+        .rank-orange { color: #fd7e14 !important; }
+        
+        .rank-rainbow { 
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
-            animation: rainbow 2s linear infinite; 
+            background-size: 200% auto;
+            animation: rainbow-move 2s linear infinite; 
             font-weight: bold; 
         }
-        @keyframes rainbow { to { background-position: 200% center; } }
+        @keyframes rainbow-move { 
+            0% { background-position: 0% center; } 
+            100% { background-position: 200% center; } 
+        }
 
-        /* --- MODAL / MENU --- */
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-content { background: var(--container-bg); padding: 20px; border-radius: 15px; width: 85%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .menu-btn { width: 100%; text-align: left; padding: 15px; margin-bottom: 8px; border-radius: 8px; background: var(--bg); color: var(--text-main); font-size: 16px; border: 1px solid var(--border); font-weight: bold; }
-        
-        .btn-dots { background: none; color: var(--text-sub); font-size: 20px; padding: 5px 15px; border-radius: 50%; border: none; cursor: pointer; }
-        .btn-dots:active { background: rgba(0,0,0,0.1); }
-        .theme-switch { position: fixed; top: 15px; right: 15px; background: var(--container-bg); border: 2px solid var(--primary); color: var(--primary); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 1000; }
-        
-        .stats-bar { display: flex; justify-content: space-around; background: var(--container-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px var(--shadow); }
-        .stat-value { display: block; font-size: 24px; font-weight: bold; color: var(--primary); }
-        .flashcard { width: 100%; height: 280px; perspective: 1000px; margin-bottom: 20px; }
-        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.4s; transform-style: preserve-3d; }
-        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 20px; font-size: 28px; padding: 20px; text-align: center; border: 4px solid var(--container-bg); box-sizing: border-box; }
-        .card-back { background: var(--primary); color: white; transform: rotateY(180deg); }
-        .btn-main { background: var(--primary); color: white; width: 100%; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: none; font-weight: bold; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--container-bg); color: var(--text-main); box-sizing: border-box; }
+        .choice-btn { background: var(--container-bg); border: 1px solid var(--border); color: var(--text-main); padding: 15px; border-radius: 10px; margin-bottom: 12px; text-align: left; width: 100%; cursor: pointer; font-size: 16px; box-shadow: 0 2px 5px var(--shadow); }
+        .choice-btn:hover { border-color: var(--primary); }
+        #toast-notice { position: fixed; top: 25px; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 10px 22px; border-radius: 25px; font-size: 14px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2); opacity: 0; transition: 0.3s; pointer-events: none; }
+        .user-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 14px; }
+        .theme-switch { background: var(--container-bg); border: 1px solid var(--border); padding: 5px 12px; border-radius: 20px; cursor: pointer; color: var(--text-main); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; color: var(--text-main); }
+        th { background: rgba(0,0,0,0.04); }
+        [data-theme=\"dark\"] th { background: rgba(255,255,255,0.05); }
+
+        .fc-stat-max { color: #000000 !important; }
+        [data-theme="dark"] .fc-stat-max { color: #ffffff !important; }
+
+        .ai-status-box { background: rgba(111, 66, 193, 0.08); border: 1px dashed #6f42c1; padding: 15px; border-radius: 10px; color: var(--text-main); font-size: 14px; margin-top: 15px; display: none; }
     </style>
 </head>
-<body data-theme="light">
+<body>
 
-<button class="theme-switch" onclick="toggleTheme()">🌓</button>
+<div id="toast-notice">✨ สำเร็จ!</div>
 
 <div class="container">
-    <h1 style="text-align:center;">🚀 Myflashcard</h1>
-
-    <div id="view-dashboard">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-main" style="flex:1" onclick="createFolder()">+ โฟลเดอร์</button>
-            <button class="btn-main" style="flex:1; background:var(--folder-bg); color:#333" onclick="showCreateDeck()">+ หมวดหมู่</button>
-        </div>
-        <div id="main-list"></div>
-        <p style="text-align:center; font-size:12px; color:var(--text-sub);">💡 กด 2 ครั้งที่หมวดหมู่เพื่อเริ่มเรียน</p>
-    </div>
-
-    <div id="modal-menu" class="modal-overlay hidden" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 id="modal-title" style="margin-top:0">จัดการหมวดหมู่</h3>
-            <button class="menu-btn" onclick="startStudyFromMenu()">📖 เริ่มเรียน</button>
-            <button class="menu-btn" onclick="editFromMenu()">✏️ แก้ไขการ์ด</button>
-            <button class="menu-btn" onclick="openMoveMenu()">📦 ย้ายเข้าโฟลเดอร์...</button>
-            <button class="menu-btn" style="color:var(--danger)" onclick="deleteFromMenu()">🗑️ ลบหมวดหมู่</button>
-            <button class="btn-main" style="background:var(--border); color:var(--text-main); margin-top:10px" onclick="closeModal()">ยกเลิก</button>
+    <div class="user-nav">
+        <div><span id="txt-user-display">👤 กำลังตรวจสอบสิทธิ์...</span> <span id="tag-admin" style="background:#dc3545; color:white; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;" class="hidden">ADMIN</span></div>
+        <div>
+            <button id="btn-admin-panel" class="hidden" style="background:#dc3545; color:white; border:none; padding:4px 12px; border-radius:8px; cursor:pointer; font-size:14px; margin-right:6px;" onclick="openAdminPanel()">🛡️ Admin Panel</button>
+            <button class="theme-switch" onclick="toggleTheme()">🌓 เปลี่ยนโหมด</button>
+            <button class="btn-danger-sm" style="padding: 4px 12px;" onclick="logOutAction()">ออกจากระบบ</button>
         </div>
     </div>
 
-    <div id="modal-move" class="modal-overlay hidden" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h3>เลือกโฟลเดอร์เป้าหมาย</h3>
-            <div id="folder-options" style="max-height: 300px; overflow-y: auto;"></div>
-            <button class="btn-main" style="background:var(--border); color:var(--text-main); margin-top:10px" onclick="closeModal()">ยกเลิก</button>
-        </div>
+    <div class="app-title">🚀 Myflashcard v10</div>
+
+    <div id="pane-auth" class="box hidden">
+        <h3 style="text-align:center; margin-top:0;">เข้าสู่ระบบ / ลงทะเบียนผู้ใช้งานใหม่</h3>
+        <input type="text" id="inp-username" placeholder="ระบุชื่อเล่นหรือบัญชีผู้ใช้">
+        <input type="password" id="inp-password" placeholder="ระบุรหัสผ่านเข้าใช้งาน (6 หลักขึ้นไป)">
+        <button class="btn-main" style="background:var(--primary);" onclick="submitAuthForm()">ยืนยันข้อมูลเพื่อเข้าใช้งาน</button>
     </div>
 
-    <div id="view-editor" class="hidden">
-        <button onclick="showDashboard()" style="margin-bottom:15px; background:var(--border); padding:8px 15px; border-radius:5px; border:none;">← กลับ</button>
-        <h2 id="edit-deck-title"></h2>
-        <div style="background: var(--container-bg); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px dashed var(--primary);">
-            <input type="text" id="new-q" placeholder="คำถาม">
-            <input type="text" id="new-a" placeholder="คำตอบ">
-            <button style="background:var(--success); color:white; width:100%; padding:12px; border-radius:8px; border:none; font-weight:bold;" onclick="addCard()">เพิ่มการ์ด</button>
-        </div>
-        <div id="card-list"></div>
-    </div>
-
-    <div id="view-study" class="hidden">
-        <div class="stats-bar">
-            <button onclick="showDashboard()" style="background:var(--border); font-size:12px; padding:5px 10px; border-radius:5px; border:none;">หยุด</button>
-            <div class="stat-item" style="text-align:center"><span class="stat-value" id="stat-cards-left">0</span><span style="font-size:10px; color:var(--text-sub)">เหลือ</span></div>
-            <div class="stat-item" style="text-align:center"><span class="stat-value" id="stat-card-streak">0</span><span style="font-size:10px; color:var(--text-sub)">Streak</span></div>
-            <div class="stat-item" style="text-align:center"><span class="stat-value" id="stat-deck-streak">0</span><span style="font-size:10px; color:var(--text-sub)">Perfect</span></div>
-        </div>
-        <div class="flashcard" id="study-card" onclick="this.classList.toggle('flipped')">
-            <div class="flashcard-inner">
-                <div class="card-face card-front" id="study-front"></div>
-                <div class="card-face card-back" id="study-back"></div>
+    <div id="pane-dashboard" class="hidden">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            <div class="box" style="margin-bottom:0;">
+                <h4 style="margin-top:0;">🏫 สร้างห้องเรียนคลาสใหม่ (สำหรับผู้สอน)</h4>
+                <input type="text" id="inp-class-name" placeholder="ระบุชื่อวิชา / ชื่อห้องเรียน">
+                <button class="btn-main" onclick="createNewClassroom()">+ บันทึกสร้างคลาส</button>
+            </div>
+            <div class="box" style="margin-bottom:0;">
+                <h4 style="margin-top:0;">🔑 เข้าร่วมห้องเรียนคลาสใหม่ (สำหรับนักเรียน)</h4>
+                <input type="text" id="inp-join-code" placeholder="กรอกรหัสเชิญชวนเข้าห้อง 5 หลัก">
+                <button class="btn-main" style="background:var(--primary);" onclick="joinTargetClassroom()">➡️ เข้าร่วมชั้นเรียน</button>
             </div>
         </div>
-        <div style="display:flex; gap:15px;">
-            <button style="background:var(--danger); color:white; flex:1; padding:15px; border-radius:10px; border:none; font-weight:bold" onclick="answer(false)">❌ ผิด</button>
-            <button style="background:var(--success); color:white; flex:1; padding:15px; border-radius:10px; border:none; font-weight:bold" onclick="answer(true)">✅ ถูก</button>
-        </div>
-        <button style="background:#6c757d; color:white; width:100%; margin-top:15px; padding:10px; border-radius:8px; border:none; font-weight:bold" onclick="undo()">↩ Undo</button>
+        <h3>📚 รายการคลาสเรียนของคุณทั้งหมด</h3>
+        <div id="ui-class-list"></div>
     </div>
-</div>
 
-<script>
-    let appData = JSON.parse(localStorage.getItem('flash_extreme_v4')) || { folders: [], decks: {} };
-    let currentDeckId = null, studyQueue = [], failedCards = [], historyStack = [];
-    let currentCardStreak = 0, isCurrentRunPerfect = true;
-    let activeDeckName = null;
+    <div id="pane-classroom" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <button class="btn-back-style" onclick="changePane('dashboard')">← คลัง</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-secondary-sm" style="font-weight:bold;" onclick="fetchAndDisplayMembers()">👥 รายชื่อสมาชิก</button>
+                <button id="btn-leave" class="btn-danger-sm" style="display:none;" onclick="leaveCurrentClass()">🚶 ออกจากคลาสนี้</button>
+            </div>
+        </div>
+        
+        <h2 id="lbl-room-name" style="margin: 0 0 5px 0;">-</h2>
+        <p style="color:var(--text-sub); margin:0 0 20px 0;">รหัสผ่านเข้าคลาสเพื่อแชร์ต่อ: <strong id="lbl-room-code" style="color:var(--danger); font-size:18px;">-</strong></p>
 
-    function save() { localStorage.setItem('flash_extreme_v4', JSON.stringify(appData)); renderDashboard(); }
+        <div id="teacher-zone" class="box hidden" style="border: 1px dashed var(--folder-bg); background:rgba(236,201,75,0.01);">
+            <div class="zone-header" onclick="toggleTeacherZoneCollapse()">
+                <h4 style="margin-top:0; margin-bottom:0; color:#b7791f;">⭐ เครื่องมือการจัดการชั้นเรียน (คลิกเพื่อยุบ/กาง)</h4>
+                <span id="txt-collapse-arrow">▼</span>
+            </div>
+            <div id="teacher-zone-content" style="margin-top: 15px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <button class="btn-main" onclick="initCreator('flashcard')">+ สร้างชุด Flashcard</button>
+                    <button class="btn-main" style="background:#6f42c1;" onclick="initCreator('quiz')">+ สร้างชุดโจทย์แบบตัวเลือก / พิมพ์ตอบ</button>
+                </div>
+                <button class="btn-main" style="background:#17a2b8;" onclick="loadAdvancedAnalytics()">📊 ดูรายงานข้อมูลสถิติและจุดบกพร่องของห้องเรียนอย่างละเอียด</button>
+            </div>
+        </div>
 
-    function toggleTheme() {
-        const t = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', t);
-        localStorage.setItem('theme', t);
-    }
-    if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        <div>
+            <h3 style="font-size:18px; margin-bottom:10px;">📇 รายการชุด Flashcard ในคลาสนี้</h3>
+            <div id="ui-flashcard-sets"></div>
+            
+            <h3 style="font-size:18px; margin-bottom:10px; margin-top:25px;">📝 รายการชุดข้อสอบย่อย (Quiz / พิมพ์ตอบ)</h3>
+            <div id="ui-quiz-sets"></div>
+        </div>
+    </div>
 
-    function getRankClass(val) {
-        if (val >= 7) return 'rank-7';
-        if (val >= 5) return 'rank-5';
-        if (val === 4) return 'rank-4';
-        if (val === 3) return 'rank-3';
-        if (val === 2) return 'rank-2';
-        if (val === 1) return 'rank-1';
-        return '';
-    }
+    <div id="pane-creator" class="hidden box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn-back-style" onclick="exitCreatorSafetyCheck()">← กลับคลาส</button>
+            <span id="lbl-draft-status" style="font-size:12px; color:var(--success); font-weight:bold;">● บันทึกแบบร่างอัตโนมัติแล้ว</span>
+        </div>
+        <h2 id="lbl-creator-header" style="margin-top:20px; font-size:24px;">-</h2>
+        
+        <input type="text" id="inp-set-title" placeholder="พิมพ์ตั้งชื่อชุดคำศัพท์/ชื่อชุดแบบฝึกหัด" oninput="saveCurrentDraftToStorage()">
+        
+        <div id="wrapper-quiz-quota" class="hidden">
+            <label style="font-size:13px; color:var(--text-sub); font-weight:bold;">🔒 จำกัดสิทธิ์การเข้าทำโจทย์ของนักเรียน (ระบุตัวเลขจำนวนครั้ง / ใส่ 0 หากไม่จำกัด):</label>
+            <input type="number" id="inp-quiz-quota" min="0" value="0" style="margin-top: 5px;" oninput="saveCurrentDraftToStorage()">
+        </div>
 
-    function renderDashboard() {
-        const list = document.getElementById('main-list');
-        list.innerHTML = '';
+        <div class="creator-dash-box">
+            <div id="form-field-fc" class="hidden">
+                <input type="text" id="field-fc-q" placeholder="คำถาม">
+                <input type="text" id="field-fc-a" placeholder="คำตอบ">
+            </div>
+            <div id="form-field-qz" class="hidden">
+                <input type="text" id="field-qz-q" placeholder="ตั้งโจทย์คำถาม">
+                <input type="text" id="field-qz-a" placeholder="ชอยส์ที่ถูกต้อง (หรือคำตอบสั้นสำหรับโหมดพิมพ์ตอบ)">
+                <p style="margin:5px 0; font-size:12px; color:var(--text-sub);">💡 <i>คำแนะนำ: หากเว้นช่อง ข, ค, ง ด้านล่างนี้ให้ว่างไว้ โจทย์ข้อนี้จะกลายเป็นข้อสอบ "โหมดพิมพ์ตอบ" ร่วมกับระบบ AI ตรวจคำตอบให้ทันที!</i></p>
+                <input type="text" id="field-qz-b" placeholder="ตัวเลือกหลอก ข. (เว้นว่างไว้เพื่อเป็นข้อพิมพ์ตอบ)">
+                <input type="text" id="field-qz-c" placeholder="ตัวเลือกหลอก ค. (เว้นว่างไว้เพื่อเป็นข้อพิมพ์ตอบ)">
+                <input type="text" id="field-qz-d" placeholder="ตัวเลือกหลอก ง. (เว้นว่างไว้เพื่อเป็นข้อพิมพ์ตอบ)">
+            </div>
+            <button class="btn-main" onclick="commitItemToMemoryList()">เพิ่มการ์ด / เพิ่มข้อคำถาม</button>
+        </div>
 
-        appData.folders.forEach((folder, fIdx) => {
-            let decksHtml = (folder.decks || []).map(dName => renderDeckItem(dName)).join('');
-            list.innerHTML += `
-                <div class="folder-wrapper">
-                    <div class="folder-header" onclick="toggleFolder(${fIdx})">
-                        <span>${folder.isOpen ? '📂' : '📁'} ${folder.name}</span>
-                        <div onclick="event.stopPropagation()">
-                            <button style="font-size:10px; background:var(--border); padding:3px 7px; border-radius:4px; border:none" onclick="renameFolder(${fIdx})">แก้</button>
-                            <button style="font-size:10px; background:var(--danger); color:white; padding:3px 7px; border-radius:4px; border:none" onclick="deleteFolder(${fIdx})">ลบ</button>
+        <h4 style="margin-bottom:10px; color:var(--text-sub);">💡 คำแนะนำ: หากพิมพ์ส่วนใดผิด สามารถคลิกที่ตัวหนังสือเพื่อแก้ไขได้ทันที!</h4>
+        <div id="ui-memory-items-list"></div>
+
+        <button class="btn-main" style="background:#007bff; margin-top:20px; font-size:16px;" onclick="uploadContentSetToCloud()">💾 บันทึกการเปลี่ยนแปลงขึ้นระบบคลาวด์</button>
+    </div>
+
+    <div id="pane-play-fc" class="hidden">
+        <div class="fc-top-bar">
+            <button class="fc-stop-btn" onclick="cancelAndBackToClass()">หยุด</button>
+            <div class="fc-stat-col">
+                <div class="fc-stat-num" id="lbl-fc-remains" style="color:#007bff;">0</div>
+                <div class="fc-stat-lbl">เหลือ</div>
+            </div>
+            <div class="fc-stat-col">
+                <div class="fc-stat-num rank-grey" id="lbl-fc-streak-now">0</div>
+                <div class="fc-stat-lbl">Streak</div>
+            </div>
+            <div class="fc-stat-col">
+                <div class="fc-stat-num rank-grey" id="lbl-fc-perfect-now">0</div>
+                <div class="fc-stat-lbl">Perfect</div>
+            </div>
+            <div class="fc-stat-col">
+                <div class="fc-stat-num fc-stat-max" id="lbl-fc-highest-streak">0</div>
+                <div class="fc-stat-lbl">Max Streak</div>
+            </div>
+            <div class="fc-stat-col">
+                <div class="fc-stat-num fc-stat-max" id="lbl-fc-highest-perfect">0</div>
+                <div class="fc-stat-lbl">Max Perfect</div>
+            </div>
+        </div>
+
+        <div class="flashcard-stage" id="dom-fc-card-body" onclick="this.classList.toggle('flipped')">
+            <div class="flashcard-inner">
+                <div class="card-face" id="dom-fc-text-front">-</div>
+                <div class="card-back card-face" id="dom-fc-text-back">-</div>
+            </div>
+        </div>
+
+        <div class="btn-choice-grid">
+            <button style="background:var(--danger);" onclick="processFcResult(false)">❌ ผิด</button>
+            <button style="background:var(--success);" onclick="processFcResult(true)">✅ ถูก</button>
+        </div>
+        <button class="btn-undo-style" onclick="triggerFcUndo()">↩️ Undo</button>
+    </div>
+
+    <div id="pane-play-qz" class="hidden box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn-secondary-sm" onclick="cancelAndBackToClass()">ออกจากการทำข้อสอบ</button>
+            <div>ข้อสอบลำดับที่: <b id="lbl-qz-index">0</b>/<b id="lbl-qz-total-count">0</b> | รวมคะแนน: <b id="lbl-qz-running-score" style="color:var(--success)">0</b></div>
+        </div>
+        
+        <h2 id="lbl-qz-question" style="margin:30px 0; font-size:22px;">โจทย์แบบทดสอบย่อย...</h2>
+        
+        <div id="ui-qz-choices-block"></div>
+
+        <div id="ui-qz-input-block" class="hidden">
+            <input type="text" id="inp-qz-student-answer" placeholder="พิมพ์คำตอบของคุณลงที่นี่..." style="font-size:18px; padding:15px;">
+            <button class="btn-main" style="background:#6f42c1; font-size:16px;" id="btn-submit-text-answer" onclick="submitTextAnswerWithAI()">ส่งคำตอบให้ครู AI ตรวจสอบ 🤖</button>
+            
+            <div id="ai-loading-box" class="ai-status-box">
+                ⏳ <b>ครู AI กำลังวิเคราะห์คำตอบและไวยากรณ์ของคุณในเวลาเรียลไทม์ โปรดรอสักครู่...</b>
+            </div>
+        </div>
+    </div>
+
+    <div id="pane-analytics" class="hidden">
+        <!-- Header -->
+        <div style="background:var(--primary); border-radius:16px 16px 0 0; padding:28px 30px 20px; margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h2 style="margin:0; color:white; font-size:24px;">📊 รายงานผลสถิติห้องเรียน</h2>
+                    <p style="margin:6px 0 0; color:rgba(255,255,255,0.8); font-size:14px;" id="lbl-analytics-subtitle">กำลังโหลด...</p>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn-secondary-sm" onclick="cancelAndBackToClass()">← กลับ</button>
+                    <button class="btn-danger-sm" onclick="purgeAllClassroomStats()">🗑️ ล้างสถิติทั้งหมด</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards (Google Forms style) -->
+        <div style="background:var(--container-bg); border:1px solid var(--border); border-top:none; border-radius:0 0 16px 16px; padding:24px; margin-bottom:16px; box-shadow:0 4px 20px var(--shadow);">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:24px;">
+                <div style="background:rgba(49,130,206,0.08); border:1px solid rgba(49,130,206,0.2); border-radius:12px; padding:18px; text-align:center;">
+                    <div style="font-size:28px; font-weight:bold; color:var(--primary);" id="lbl-stat-total-student">0</div>
+                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">นักเรียนที่ส่งข้อมูล</div>
+                </div>
+                <div style="background:rgba(40,167,69,0.08); border:1px solid rgba(40,167,69,0.2); border-radius:12px; padding:18px; text-align:center;">
+                    <div style="font-size:28px; font-weight:bold; color:var(--success);" id="lbl-stat-avg-score">-</div>
+                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">คะแนนเฉลี่ย (Quiz)</div>
+                </div>
+                <div style="background:rgba(111,66,193,0.08); border:1px solid rgba(111,66,193,0.2); border-radius:12px; padding:18px; text-align:center;">
+                    <div style="font-size:28px; font-weight:bold; color:#6f42c1;" id="lbl-stat-max-streak">0</div>
+                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">Max Perfect Streak</div>
+                </div>
+                <div style="background:rgba(253,126,20,0.08); border:1px solid rgba(253,126,20,0.2); border-radius:12px; padding:18px; text-align:center;">
+                    <div style="font-size:28px; font-weight:bold; color:#fd7e14;" id="lbl-stat-total-submissions">0</div>
+                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">ครั้งที่ทำทั้งหมด</div>
+                </div>
+            </div>
+
+            <!-- Perfect vs Mistake Chart -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+                <!-- Donut chart: Perfect rate -->
+                <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px;">
+                    <h4 style="margin:0 0 16px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">อัตราความสำเร็จ</h4>
+                    <div style="display:flex; align-items:center; gap:20px;">
+                        <div style="position:relative; width:90px; height:90px; flex-shrink:0;">
+                            <svg viewBox="0 0 36 36" style="width:90px;height:90px;transform:rotate(-90deg);">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border)" stroke-width="3"/>
+                                <circle id="chart-perfect-ring" cx="18" cy="18" r="15.9" fill="none" stroke="#28a745" stroke-width="3" stroke-dasharray="0 100" stroke-linecap="round"/>
+                            </svg>
+                            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                                <div style="font-size:15px;font-weight:bold;" id="chart-perfect-pct">0%</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="width:12px;height:12px;border-radius:50%;background:#28a745;display:inline-block;"></span><span style="font-size:13px;">สมบูรณ์แบบ: <b id="lbl-stat-perfect-count">0</b> ครั้ง</span></div>
+                            <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:#dc3545;display:inline-block;"></span><span style="font-size:13px;">มีข้อผิด: <b id="lbl-stat-mistake-count">0</b> ครั้ง</span></div>
                         </div>
                     </div>
-                    <div class="folder-content ${folder.isOpen ? '' : 'hidden'}">${decksHtml || '<small style="color:#888; padding:10px; display:block">ไม่มีหมวดหมู่ข้างใน</small>'}</div>
+                </div>
+
+                <!-- Bar: Activity type breakdown -->
+                <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px;">
+                    <h4 style="margin:0 0 16px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">ประเภทกิจกรรม</h4>
+                    <div style="margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>🃏 Flashcard</span><span id="lbl-bar-fc-count">0 ครั้ง</span></div>
+                        <div style="background:var(--border);border-radius:999px;height:10px;overflow:hidden;"><div id="bar-fc" style="height:100%;background:var(--primary);border-radius:999px;width:0%;transition:width 0.6s;"></div></div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>📝 Quiz</span><span id="lbl-bar-qz-count">0 ครั้ง</span></div>
+                        <div style="background:var(--border);border-radius:999px;height:10px;overflow:hidden;"><div id="bar-qz" style="height:100%;background:#6f42c1;border-radius:999px;width:0%;transition:width 0.6s;"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top mistakes -->
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:0;">
+                <h4 style="margin:0 0 12px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">⚠️ คำถามที่ตอบผิดบ่อยที่สุด</h4>
+                <div id="ui-stat-error-rank-list" style="font-size:14px; color:var(--text-main); line-height:1.8;">-</div>
+            </div>
+        </div>
+
+        <!-- Individual responses (Google Forms style) -->
+        <div style="background:var(--container-bg); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:0 4px 20px var(--shadow);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:16px;">รายการคำตอบทั้งหมด <span id="lbl-responses-count" style="color:var(--text-sub); font-weight:normal; font-size:14px;"></span></h3>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <label style="font-size:13px; color:var(--text-sub);">กรองตามชื่อ:</label>
+                    <select id="sel-stat-individual-filter" onchange="runIndividualStatFilter()" style="width:auto; padding:8px 12px; margin-bottom:0; font-size:13px;">
+                        <option value="all">-- ทั้งหมด --</option>
+                    </select>
+                </div>
+            </div>
+            <div id="ui-response-cards-container"></div>
+        </div>
+    </div>
+
+    <div id="pane-members" class="hidden box">
+        <button class="btn-secondary-sm" onclick="cancelAndBackToClass()">← ย้อนกลับเข้าสู่ชั้นเรียน</button>
+        <h2 style="margin-top:20px; margin-bottom:5px;">👥 ระบบบริหารจัดการและรายชื่อสมาชิกห้องเรียน</h2>
+        <p>👨‍🏫 <strong>ผู้สร้างและจัดหลักสูตรห้องเรียน:</strong> <span id="lbl-member-teacher-name">-</span></p>
+        <hr style="border:none; border-top:1px solid var(--border)">
+        <h4>นักเรียนที่ลงทะเบียนเรียนในรหัสวิชานี้ (<span id="lbl-member-counter">0</span> คน)</h4>
+        <div id="ui-member-rows-container" style="line-height:2.2;"></div>
+    </div>
+
+    <div id="pane-admin" class="hidden box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn-secondary-sm" onclick="changePane('dashboard')">← กลับหน้าหลัก</button>
+            <h2 style="margin:0; color:#dc3545;">🛡️ Admin Panel</h2>
+            <button class="btn-main" style="background:#17a2b8; width:auto; padding:8px 16px;" onclick="adminLoadUsers()">🔄 รีเฟรช</button>
+        </div>
+        <hr style="border:none; border-top:1px solid var(--border); margin:15px 0;">
+        <p style="color:var(--text-sub); font-size:13px;">⚠️ เฉพาะ Admin เท่านั้นที่มองเห็นหน้านี้ได้ — สามารถลบหรือแบนบัญชีผู้ใช้งานออกจากระบบได้</p>
+        <div style="margin-bottom:12px;">
+            <input type="text" id="inp-admin-search" placeholder="🔍 ค้นหาชื่อผู้ใช้..." oninput="adminFilterUsers()" style="margin-bottom:0;">
+        </div>
+        <div id="ui-admin-user-count" style="font-size:13px; color:var(--text-sub); margin-bottom:10px;"></div>
+        <div id="ui-admin-user-list">
+            <p style="color:var(--text-sub);">กำลังโหลดรายชื่อผู้ใช้งาน...</p>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, arrayUnion, arrayRemove, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 🔑 การเชื่อมต่อระบบปัญญาประดิษฐ์ (Gemini API)
+    const GEMINI_API_KEY = "ใส่_API_KEY_ของคุณตรงนี้"; 
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDXhvdY9-eJDtjWK-djbepXJ8-V8VqugJo",
+        authDomain: "flashcard-810ec.firebaseapp.com",
+        projectId: "flashcard-810ec",
+        storageBucket: "flashcard-810ec.firebasestorage.app",
+        messagingSenderId: "314771838025",
+        appId: "1:314771838025:web:d346b0b92337488dec1b98",
+        measurementId: "G-EDS3QVL67B"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // App Core Session States
+    let activeUser = null, activeClassCode = null, activeClassMetadata = null, activeCreatorType = '', targetContentEditUid = null;
+    let memoryItemsBuffer = [], cachedStatsArray = [];
+
+    // Playback Engine Variable States
+    let poolMasterCards = [], queueActiveCards = [], historyPlayedCards = [];
+    let stateStreak = 0, statePerfectStreak = 0, flagIsPerfectInLoop = true, ptrCurrentCard = null;
+    let stateHighestStreak = 0, stateHighestPerfect = 0; // เพิ่ม Real-time High Score
+    let poolQzItems = [], ptrQzCurrentIdx = 0, accumulatorQzScore = 0, arrayQzMistakes = [], strActiveQzDocId = '', strActiveQzTitle = '';
+
+    window.addEventListener('click', (e) => {
+        if (!e.target.matches('.btn-dots')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+        }
+    });
+
+    function computeRankVisualClass(count) {
+        if (count <= 1) return 'rank-grey';
+        if (count <= 3) return 'rank-green';
+        if (count === 4) return 'rank-blue';
+        if (count === 5) return 'rank-purple';
+        if (count === 6) return 'rank-gold';
+        if (count === 7) return 'rank-orange';
+        return 'rank-rainbow';
+    }
+
+    function emitToastNotification(msg) {
+        const dom = document.getElementById('toast-notice');
+        dom.innerText = msg; dom.style.opacity = '1';
+        setTimeout(() => dom.style.opacity = '0', 2000);
+    }
+
+    window.changePane = (targetPaneId) => {
+        document.querySelectorAll('.container > div:not(.user-nav)').forEach(pane => pane.classList.add('hidden'));
+        document.getElementById(`pane-${targetPaneId}`).classList.remove('hidden');
+    };
+
+    window.toggleActionMenu = (e, id) => {
+        e.stopPropagation();
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (menu.id !== `menu-${id}`) menu.style.display = 'none';
+        });
+        const targetMenu = document.getElementById(`menu-${id}`);
+        targetMenu.style.display = targetMenu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.toggleTeacherZoneCollapse = () => {
+        const content = document.getElementById('teacher-zone-content');
+        const arrow = document.getElementById('txt-collapse-arrow');
+        if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            arrow.innerText = '▼';
+        } else {
+            content.classList.add('hidden');
+            arrow.innerText = '▲';
+        }
+    };
+
+    // --- SYSTEM: LOGIN / AUTHENTICATION ---
+    window.submitAuthForm = async () => {
+        const userStr = document.getElementById('inp-username').value.trim();
+        const passStr = document.getElementById('inp-password').value;
+        if (!userStr || !passStr) return alert("กรุณากรอกข้อมูลชื่อผู้ใช้งานและรหัสผ่าน");
+        
+        const internalEmailFormat = `${encodeURIComponent(userStr.toLowerCase())}@flashcard.local`;
+        try {
+            try {
+                await signInWithEmailAndPassword(auth, internalEmailFormat, passStr);
+            } catch (err) {
+                if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
+                    const credentials = await createUserWithEmailAndPassword(auth, internalEmailFormat, passStr);
+                    await updateProfile(credentials.user, { displayName: userStr });
+                    await setDoc(doc(db, "users", credentials.user.uid), { name: userStr, email: internalEmailFormat, role: userStr.toLowerCase() === 'admin' ? 'admin' : 'user' });
+                } else { throw err; }
+            }
+        } catch (ex) { alert("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์: " + ex.message); }
+    };
+
+    window.logOutAction = () => signOut(auth);
+
+    onAuthStateChanged(auth, async (uObj) => {
+        if (uObj) {
+            // ตรวจสอบว่าถูกแบนหรือไม่
+            const userDocSnap = await getDoc(doc(db, "users", uObj.uid));
+            if (userDocSnap.exists() && userDocSnap.data().banned === true) {
+                await signOut(auth);
+                alert("⚠️ บัญชีของคุณถูกระงับการใช้งานโดย Admin กรุณาติดต่อผู้ดูแลระบบ");
+                return;
+            }
+
+            activeUser = uObj;
+            document.getElementById('txt-user-display').innerText = `👤 บัญชีผู้ใช้งาน: ${uObj.displayName}`;
+            const isAdmin = uObj.displayName.toLowerCase() === 'admin';
+            document.getElementById('tag-admin').className = isAdmin ? '' : 'hidden';
+            document.getElementById('btn-admin-panel').className = isAdmin ? '' : 'hidden';
+            changePane('dashboard');
+            refreshClassroomDashboard();
+        } else {
+            activeUser = null;
+            changePane('auth');
+        }
+    });
+
+    // --- SYSTEM: CLASSROOM MANAGEMENT ---
+    window.createNewClassroom = async () => {
+        const titleStr = document.getElementById('inp-class-name').value.trim();
+        if (!titleStr) return alert("โปรดระบุชื่อชุดการสอนห้องเรียน");
+        const uniqueGenCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+        
+        await setDoc(doc(db, "classes", uniqueGenCode), {
+            name: titleStr, code: uniqueGenCode, ownerId: activeUser.uid, ownerName: activeUser.displayName, students: []
+        });
+        document.getElementById('inp-class-name').value = '';
+        refreshClassroomDashboard();
+    };
+
+    window.joinTargetClassroom = async () => {
+        const inviteCode = document.getElementById('inp-join-code').value.trim().toUpperCase();
+        if (!inviteCode) return alert("กรุณาใส่รหัสเชิญชวน 5 หลัก");
+        const snap = await getDoc(doc(db, "classes", inviteCode));
+        if (!snap.exists()) return alert("ระบุรหัสเข้าชั้นเรียนไม่ถูกต้อง");
+        
+        await updateDoc(doc(db, "classes", inviteCode), { students: arrayUnion(activeUser.uid) });
+        document.getElementById('inp-join-code').value = '';
+        refreshClassroomDashboard();
+    };
+
+    window.leaveCurrentClass = async () => {
+        if (!confirm("คุณมีความประสงค์จะถอนตัวออกจากห้องเรียนนี้ใช่หรือไม่?")) return;
+        await updateDoc(doc(db, "classes", activeClassCode), { students: arrayRemove(activeUser.uid) });
+        changePane('dashboard');
+        refreshClassroomDashboard();
+    };
+
+    // ปุ่มลบห้องเรียนสำหรับครูผู้สอนเวลาสร้างผิด
+    window.deleteClassroomAction = async (classCode, className) => {
+        if (!confirm(`⚠️ คุณแน่ใจใช่หรือไม่ที่จะลบห้องเรียน "${className}" (${classCode}) ชิ้นนี้?\nข้อมูลแบบฝึกหัดและสถิติทั้งหมดในคลาสจะถูกล้างทิ้งและไม่สามารถกู้คืนได้!`)) return;
+        
+        // 1. ลบข้อมูลห้องเรียน
+        await deleteDoc(doc(db, "classes", classCode));
+        
+        // 2. ลบเนื้อหาที่ผูกกับห้องนี้
+        const contentSnap = await getDocs(query(collection(db, "contents"), where("classCode", "==", classCode)));
+        contentSnap.forEach(async (d) => await deleteDoc(doc(db, "contents", d.id)));
+
+        // 3. ลบสถิติที่ผูกกับห้องนี้
+        const statSnap = await getDocs(query(collection(db, "stats"), where("classCode", "==", classCode)));
+        statSnap.forEach(async (d) => await deleteDoc(doc(db, "stats", d.id)));
+
+        emitToastNotification("🗑️ ลบห้องเรียนสำเร็จแล้ว");
+        refreshClassroomDashboard();
+    };
+
+    window.kickStudentOut = async (targetStudentUid, studentName) => {
+        if (!confirm(`คุณต้องการเตะคุณ "${studentName}" ออกจากการเป็นสมาชิกของห้องเรียนนี้ใช่หรือไม่?`)) return;
+        await updateDoc(doc(db, "classes", activeClassCode), { students: arrayRemove(targetStudentUid) });
+        emitToastNotification(`เตะ ${studentName} ออกสำเร็จ!`);
+        fetchAndDisplayMembers(); 
+    };
+
+    async function refreshClassroomDashboard() {
+        const output = document.getElementById('ui-class-list');
+        output.innerHTML = 'กำลังประมวลผลดึงคลาสเรียนจากเซิร์ฟเวอร์...';
+        
+        let targetSnap;
+        if (activeUser.displayName.toLowerCase() === 'admin') {
+            targetSnap = await getDocs(query(collection(db, "classes")));
+        } else {
+            const partA = await getDocs(query(collection(db, "classes"), where("ownerId", "==", activeUser.uid)));
+            const partB = await getDocs(query(collection(db, "classes"), where("students", "array-contains", activeUser.uid)));
+            output.innerHTML = '';
+            let isZero = true;
+            
+            const appendUIBlock = (snapshot, roleFlag) => {
+                snapshot.forEach(docObj => {
+                    isZero = false; const obj = docObj.data();
+                    let deleteBtn = roleFlag ? `<button class="btn-danger-sm" style="padding:4px 10px;" onclick="deleteClassroomAction('${obj.code}', '${obj.name}')">🗑️ ยุบห้อง</button>` : '';
+                    output.innerHTML += `
+                        <div class="card-item-ui" style="border-left-color:${roleFlag ? 'var(--folder-bg)' : 'var(--primary)'}">
+                            <div><strong>${obj.name}</strong> <small>(${obj.code})</small><br><small style="color:var(--text-sub)">วิทยากรผู้สอน: ${obj.ownerName}</small></div>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                ${deleteBtn}
+                                <button class="btn-main" style="width:auto;" onclick="accessClassroomView('${obj.code}')">เข้าห้องเรียน ➡️</button>
+                            </div>
+                        </div>`;
+                });
+            };
+            appendUIBlock(partA, true); appendUIBlock(partB, false);
+            if (isZero) output.innerHTML = '<p style="text-align:center; color:var(--text-sub);">คลังเก็บวิชาของคุณยังว่างเปล่าอยู่ในตอนนี้</p>';
+            return;
+        }
+
+        output.innerHTML = '';
+        if (targetSnap.empty) { output.innerHTML = '<p style="text-align:center; color:var(--text-sub);">ไม่พบคลาสเรียนในระบบ</p>'; return; }
+        targetSnap.forEach(d => {
+            const info = d.data();
+            const controlFlag = info.ownerId === activeUser.uid || activeUser.displayName.toLowerCase() === 'admin';
+            let deleteBtn = controlFlag ? `<button class="btn-danger-sm" style="padding:4px 10px;" onclick="deleteClassroomAction('${info.code}', '${info.name}')">🗑️ ยุบห้อง</button>` : '';
+            output.innerHTML += `
+                <div class="card-item-ui" style="border-left-color:${controlFlag ? 'var(--folder-bg)' : 'var(--primary)'}">
+                    <div><strong>${info.name}</strong> <small>(${info.code})</small><br><small style="color:var(--text-sub)">วิทยากรผู้สอน: ${info.ownerName}</small></div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        ${deleteBtn}
+                        <button class="btn-main" style="width:auto;" onclick="accessClassroomView('${info.code}')">เข้าห้องเรียน ➡️</button>
+                    </div>
                 </div>`;
         });
-
-        const inFolders = appData.folders.flatMap(f => f.decks);
-        const standalones = Object.keys(appData.decks).filter(d => !inFolders.includes(d));
-        list.innerHTML += `<div style="margin-top:20px;">
-            <h3 style="margin-left:5px; font-size:16px; color:var(--text-sub)">📦 ทั่วไป</h3>
-            ${standalones.map(dName => renderDeckItem(dName)).join('')}
-        </div>`;
     }
 
-    function renderDeckItem(name) {
-        const deck = appData.decks[name];
-        if (!deck) return '';
-        const rank = getRankClass(deck.perfectStreak);
-        return `<div class="card-item" ondblclick="startStudy('${name}', true)">
-            <div style="flex:1">
-                <strong>${name}</strong><br>
-                <small style="color:var(--text-sub)">${deck.cards.length} ใบ | 🔥 Perfect: <span class="${rank}" style="font-weight:bold;">${deck.perfectStreak}</span></small>
-            </div>
-            <button class="btn-dots" onclick="event.stopPropagation(); openDeckMenu('${name}')">⋮</button>
-        </div>`;
-    }
+    window.accessClassroomView = async (code) => {
+        activeClassCode = code;
+        const metadata = await getDoc(doc(db, "classes", code));
+        activeClassMetadata = metadata.data();
 
-    function openDeckMenu(name) {
-        activeDeckName = name;
-        document.getElementById('modal-title').innerText = name;
-        document.getElementById('modal-menu').classList.remove('hidden');
-    }
+        document.getElementById('lbl-room-name').innerText = activeClassMetadata.name;
+        document.getElementById('lbl-room-code').innerText = activeClassMetadata.code;
 
-    function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
-    function startStudyFromMenu() { closeModal(); startStudy(activeDeckName, true); }
-    function editFromMenu() { closeModal(); showEditor(activeDeckName); }
-    function deleteFromMenu() { if(confirm('ลบหมวดหมู่?')) { closeModal(); deleteDeck(activeDeckName); } }
+        if (activeClassMetadata.ownerId === activeUser.uid || activeUser.displayName.toLowerCase() === 'admin') {
+            document.getElementById('teacher-zone').classList.remove('hidden');
+            document.getElementById('btn-leave').style.display = 'none';
+        } else {
+            document.getElementById('teacher-zone').classList.add('hidden');
+            document.getElementById('btn-leave').style.display = 'block';
+        }
 
-    function openMoveMenu() {
-        document.getElementById('modal-menu').classList.add('hidden');
-        const optCont = document.getElementById('folder-options');
-        optCont.innerHTML = `<button class="menu-btn" onclick="moveToFolder(-1)">📤 เอาออกจากโฟลเดอร์ (ทั่วไป)</button>`;
-        appData.folders.forEach((f, i) => {
-            optCont.innerHTML += `<button class="menu-btn" onclick="moveToFolder(${i})">📁 เข้าไปที่: ${f.name}</button>`;
+        fetchClassroomActivities();
+        changePane('classroom');
+    };
+
+    // --- SYSTEM: ACTIVITY RENDERERS ---
+    async function fetchClassroomActivities() {
+        const fcArea = document.getElementById('ui-flashcard-sets');
+        const qzArea = document.getElementById('ui-quiz-sets');
+        fcArea.innerHTML = 'กำลังดึงกิจกรรม...'; qzArea.innerHTML = 'กำลังดึงกิจกรรม...';
+
+        const sSnap = await getDocs(query(collection(db, "contents"), where("classCode", "==", activeClassCode)));
+        fcArea.innerHTML = ''; qzArea.innerHTML = '';
+
+        let countA = 0, countB = 0;
+        const hasPower = activeClassMetadata.ownerId === activeUser.uid || activeUser.displayName.toLowerCase() === 'admin';
+
+        const myHistoryQuery = await getDocs(query(collection(db, "stats"), where("classCode", "==", activeClassCode), where("studentUid", "==", activeUser.uid), where("type", "==", "quiz")));
+        let counterLog = {};
+        myHistoryQuery.forEach(docObj => {
+            const info = docObj.data();
+            if (info.setName) counterLog[info.setName] = (counterLog[info.setName] || 0) + 1;
         });
-        document.getElementById('modal-move').classList.remove('hidden');
+
+        sSnap.forEach(snapItem => {
+            const item = snapItem.data();
+            const docId = snapItem.id;
+            
+            let actionGroup = '';
+            if (hasPower) {
+                actionGroup += `
+                    <div class="action-menu-container">
+                        <button class="btn-dots" onclick="toggleActionMenu(event, '${docId}')">⋮</button>
+                        <div class="dropdown-menu" id="menu-${docId}">
+                            <button onclick="fetchTargetSetToEdit('${docId}')">✏️ แก้ไขข้อมูล</button>
+                            <button onclick="purgeContentSet('${docId}')" style="color:var(--danger)">🗑️ ลบชุดนี้</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (item.type === 'flashcard') {
+                countA++;
+                fcArea.innerHTML += `
+                    <div class="card-item-ui">
+                        <div><strong>${item.title}</strong><br><small style="color:var(--text-sub)">จำนวนการ์ดความรู้ภายในชุด: ${item.items.length} ใบ</small></div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${actionGroup}
+                            <button class="btn-main" style="width:auto; padding:6px 16px;" onclick="loadFlashcardMode('${docId}')">เริ่มเล่น</button>
+                        </div>
+                    </div>`;
+            } else if (item.type === 'quiz') {
+                countB++;
+                const allowedCap = item.quizLimit ? parseInt(item.quizLimit) : 0;
+                const completedRuns = counterLog[item.title] || 0;
+                
+                // ตรวจดูว่าในชุดเป็นแบบพิมพ์ตอบทั้งหมดหรือบางส่วนหรือไม่
+                let textTypeCounter = 0;
+                item.items.forEach(i => { if(!i.b && !i.c && !i.d) textTypeCounter++; });
+                let modeLabel = textTypeCounter === item.items.length ? "✏️ โหมดพิมพ์ตอบ AI" : (textTypeCounter > 0 ? "📝 ผสม เลือก+พิมพ์" : "🔘 โหมดชอยส์เลือกตอบ");
+
+                let actionBtnMarkup = `<button class="btn-main" style="width:auto; padding:6px 16px; background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}')">ทำโจทย์</button>`;
+
+                if (allowedCap > 0 && completedRuns >= allowedCap && !hasPower) {
+                    actionBtnMarkup = `<span style="color:var(--danger); font-size:13px; font-weight:bold;">🔒 สิทธิ์เต็ม (${completedRuns}/${allowedCap} ครั้ง)</span>`;
+                } else if (allowedCap > 0) {
+                    actionBtnMarkup = `<button class="btn-main" style="width:auto; padding:6px 16px; background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}')">ทำโจทย์ (${completedRuns}/${allowedCap})</button>`;
+                }
+
+                qzArea.innerHTML += `
+                    <div class="card-item-ui" style="border-left-color:#6f42c1;">
+                        <div><strong>${item.title}</strong> <span style="font-size:11px; background:#e2e8f0; color:#4a5568; padding:2px 6px; border-radius:4px; margin-left:5px;">${modeLabel}</span><br><small style="color:var(--text-sub)">จำนวนโจทย์คำถาม: ${item.items.length} ข้อ</small></div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${actionGroup}
+                            ${actionBtnMarkup}
+                        </div>
+                    </div>`;
+            }
+        });
+
+        if (countA === 0) fcArea.innerHTML = '<small style="color:#a0aec0">ไม่มีโมดูลแบบฝึก Flashcard ค้างอยู่</small>';
+        if (countB === 0) qzArea.innerHTML = '<small style="color:#a0aec0">ไม่มีโมดูลแบบฝึกคำถามข้อสอบค้างอยู่</small>';
     }
 
-    function moveToFolder(fIdx) {
-        appData.folders.forEach(f => f.decks = (f.decks || []).filter(d => d !== activeDeckName));
-        if (fIdx !== -1) appData.folders[fIdx].decks.push(activeDeckName);
-        save(); closeModal();
+    window.cancelAndBackToClass = () => {
+        // Reset flashcard state เมื่อออกจากหน้าเล่น
+        poolMasterCards = []; queueActiveCards = []; historyPlayedCards = [];
+        stateStreak = 0; statePerfectStreak = 0; flagIsPerfectInLoop = true; ptrCurrentCard = null;
+        stateHighestStreak = 0; stateHighestPerfect = 0;
+        accessClassroomView(activeClassCode);
+    };
+
+    window.purgeContentSet = async (id) => {
+        if (!confirm("คุณต้องการที่จะสั่งลบชุดข้อมูลเนื้อหากิจกรรมชิ้นนี้ใช่ไหม?")) return;
+        await deleteDoc(doc(db, "contents", id));
+        fetchClassroomActivities();
+    };
+
+    // --- ENGINE: CREATOR (WITH DRAFT AUTO-SAVE) ---
+    // ฟังก์ชันจัดเก็บแบบร่างลง LocalStorage เผื่อกรณีมือลั่นหลุดหน้าจอ
+    window.saveCurrentDraftToStorage = () => {
+        const title = document.getElementById('inp-set-title').value;
+        const quota = document.getElementById('inp-quiz-quota').value;
+        const draftObj = {
+            activeCreatorType,
+            targetContentEditUid,
+            activeClassCode,
+            title,
+            quota,
+            items: memoryItemsBuffer
+        };
+        localStorage.setItem("myflashcard_creator_draft", JSON.stringify(draftObj));
+        document.getElementById('lbl-draft-status').innerText = "● บันทึกแบบร่างอัตโนมัติแล้ว";
+    };
+
+    // ฟังก์ชันเช็คความปลอดภัยก่อนกดออกจากหน้า Creator
+    window.exitCreatorSafetyCheck = () => {
+        if (memoryItemsBuffer.length > 0) {
+            if (!confirm("⚠️ ข้อมูลในหน้านี้ที่ยังไม่ได้บันทึกขึ้น Cloud จะไม่หายไป (ถูกเก็บในเครื่องเป็นแบบร่างไว้ชั่วคราว) คุณต้องการย้อนกลับเลยใช่หรือไม่?")) return;
+        }
+        localStorage.removeItem("myflashcard_creator_draft"); // เคลียร์ดราฟต์ปกติถ้าจงใจออก
+        cancelAndBackToClass();
+    };
+
+    window.initCreator = (type) => {
+        activeCreatorType = type; targetContentEditUid = null; memoryItemsBuffer = [];
+        
+        // เช็คเผื่อมีแบบร่างของเก่าค้างอยู่จากกรณีมือลั่นหลุดหน้าจอ
+        const cachedDraft = localStorage.getItem("myflashcard_creator_draft");
+        if (cachedDraft) {
+            const parsed = JSON.parse(cachedDraft);
+            if (parsed.activeClassCode === activeClassCode && parsed.activeCreatorType === type && !parsed.targetContentEditUid) {
+                if (confirm("✨ ระบบตรวจพบข้อมูลแบบร่างที่คุณพิมพ์ค้างไว้ก่อนหน้านี้! คุณต้องการดึงข้อมูลดังกล่าวกลับมาทำต่อหรือไม่?")) {
+                    memoryItemsBuffer = parsed.items || [];
+                    document.getElementById('inp-set-title').value = parsed.title || '';
+                    document.getElementById('inp-quiz-quota').value = parsed.quota || '0';
+                }
+            }
+        }
+
+        if (!document.getElementById('inp-set-title').value) {
+            document.getElementById('inp-set-title').value = '';
+        }
+        document.getElementById('inp-set-title').disabled = false;
+        if (document.getElementById('inp-quiz-quota').value === "") document.getElementById('inp-quiz-quota').value = "0";
+        document.getElementById('lbl-creator-header').innerText = type === 'flashcard' ? '🃏 สร้างชุดระบบ Flashcard ใหม่' : '📝 สร้างชุดทดสอบปรนัย / พิมพ์ตอบ';
+        
+        document.getElementById('form-field-fc').className = type === 'flashcard' ? '' : 'hidden';
+        document.getElementById('form-field-qz').className = type === 'quiz' ? '' : 'hidden';
+        document.getElementById('wrapper-quiz-quota').className = type === 'quiz' ? '' : 'hidden';
+        
+        renderMemoryBufferUI();
+        changePane('creator');
+    };
+
+    window.fetchTargetSetToEdit = async (id) => {
+        targetContentEditUid = id;
+        const snapshot = await getDoc(doc(db, "contents", id));
+        const obj = snapshot.data();
+        
+        activeCreatorType = obj.type;
+        memoryItemsBuffer = [...obj.items];
+        
+        document.getElementById('inp-set-title').value = obj.title;
+        document.getElementById('inp-set-title').disabled = true; 
+        document.getElementById('inp-quiz-quota').value = obj.quizLimit || "0";
+        document.getElementById('lbl-creator-header').innerText = `${obj.title}`;
+        
+        document.getElementById('form-field-fc').className = activeCreatorType === 'flashcard' ? '' : 'hidden';
+        document.getElementById('form-field-qz').className = activeCreatorType === 'quiz' ? '' : 'hidden';
+        document.getElementById('wrapper-quiz-quota').className = activeCreatorType === 'quiz' ? '' : 'hidden';
+        
+        renderMemoryBufferUI();
+        changePane('creator');
+    };
+
+    window.commitItemToMemoryList = () => {
+        if (activeCreatorType === 'flashcard') {
+            const q = document.getElementById('field-fc-q').value.trim();
+            const a = document.getElementById('field-fc-a').value.trim();
+            if (!q || !a) return alert("กรุณาป้อนชุดคำข้อมูลคำถามและคำตอบก่อนกดปุ่ม");
+            memoryItemsBuffer.push({ q, a });
+            document.getElementById('field-fc-q').value = ''; document.getElementById('field-fc-a').value = '';
+        } else {
+            const q = document.getElementById('field-qz-q').value.trim();
+            const a = document.getElementById('field-qz-a').value.trim();
+            const b = document.getElementById('field-qz-b').value.trim();
+            const c = document.getElementById('field-qz-c').value.trim();
+            const d = document.getElementById('field-qz-d').value.trim();
+            
+            if (!q || !a) return alert("อย่างน้อยโปรดระบุเนื้อหาคำถาม และคำตอบที่ถูกต้องลงในช่องแรก");
+            
+            // เก็บข้อมูลลงบัฟเฟอร์ (ถ้า ข, ค, ง ว่างเปล่า จะนับเป็นข้อสอบโหมดพิมพ์ตอบโดยอัตโนมัติ)
+            memoryItemsBuffer.push({ q, a, b, c, d });
+            document.getElementById('field-qz-q').value = ''; document.getElementById('field-qz-a').value = '';
+            document.getElementById('field-qz-b').value = ''; document.getElementById('field-qz-c').value = ''; document.getElementById('field-qz-d').value = '';
+        }
+        document.getElementById('lbl-draft-status').innerText = "⏳ มีการเปลี่ยนแปลงที่ยังไม่ได้เซฟ...";
+        saveCurrentDraftToStorage();
+        renderMemoryBufferUI();
+    };
+
+    window.dropMemoryBufferIndex = (idx) => {
+        memoryItemsBuffer.splice(idx, 1);
+        saveCurrentDraftToStorage();
+        renderMemoryBufferUI();
+    };
+
+    window.enableInlineEdit = (element, index, fieldKey) => {
+        if (element.querySelector('input')) return; 
+        const originalValue = memoryItemsBuffer[index][fieldKey];
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = originalValue;
+        input.className = 'inline-edit-input';
+        
+        const saveChanges = () => {
+            const newValue = input.value.trim();
+            if (newValue) {
+                memoryItemsBuffer[index][fieldKey] = newValue;
+            }
+            saveCurrentDraftToStorage();
+            renderMemoryBufferUI();
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') saveChanges();
+            if (e.key === 'Escape') renderMemoryBufferUI();
+        };
+        input.onblur = saveChanges;
+
+        element.innerHTML = '';
+        element.appendChild(input);
+        input.focus();
+    };
+
+    function renderMemoryBufferUI() {
+        const pane = document.getElementById('ui-memory-items-list');
+        pane.innerHTML = '';
+        
+        memoryItemsBuffer.forEach((element, index) => {
+            let rowSubDetail = '';
+            if (activeCreatorType === 'flashcard') {
+                rowSubDetail = `
+                    <div style="font-size:16px; color:var(--text-main); margin-bottom:5px;">
+                        <span>คำถาม:</span> <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'q')">${element.q}</span>
+                    </div>
+                    <div style="font-size:14px; color:var(--text-sub);">
+                        <span>คำตอบ:</span> <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'a')">${element.a}</span>
+                    </div>`;
+            } else {
+                const isShortAnswer = !element.b && !element.c && !element.d;
+                if (isShortAnswer) {
+                    rowSubDetail = `
+                        <div style="font-size:16px; font-weight:bold; margin-bottom:4px;">
+                            โจทย์: <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'q')">${element.q}</span> 
+                            <span style="font-size:11px; background:#6f42c1; color:white; padding:1px 5px; border-radius:4px; margin-left:5px;">✏️ พิมพ์ตอบตรวจโดย AI</span>
+                        </div>
+                        <div style="font-size:13px; color:var(--success);">• คำตอบหลักที่ต้องการให้ใกล้เคียง: <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'a')">${element.a}</span></div>`;
+                } else {
+                    rowSubDetail = `
+                        <div style="font-size:16px; font-weight:bold; margin-bottom:4px;">
+                            โจทย์: <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'q')">${element.q}</span>
+                        </div>
+                        <div style="font-size:13px; color:var(--success);">• ชอยส์ถูก (ก): <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'a')">${element.a}</span></div>
+                        <div style="font-size:13px; color:var(--text-sub);">• หลอก (ข): <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'b')">${element.b}</span></div>
+                        <div style="font-size:13px; color:var(--text-sub);">• หลอก (ค): <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'c')">${element.c}</span></div>
+                        <div style="font-size:13px; color:var(--text-sub);">• หลอก (ง): <span class="editable-text" onclick="enableInlineEdit(this, ${index}, 'd')">${element.d}</span></div>`;
+                }
+            }
+
+            pane.innerHTML += `
+                <div style="background:var(--container-bg); border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 5px rgba(0,0,0,0.02)">
+                    <div style="flex:1;">${rowSubDetail}</div>
+                    <button class="btn-danger-sm" style="background:#e53e3e; padding:6px 12px;" onclick="dropMemoryBufferIndex(${index})">ลบ</button>
+                </div>`;
+        });
     }
 
-    function createFolder() { const n = prompt("ชื่อโฟลเดอร์:"); if(n) { appData.folders.push({name:n, decks:[], isOpen:true}); save(); }}
-    function toggleFolder(i) { appData.folders[i].isOpen = !appData.folders[i].isOpen; save(); }
-    function renameFolder(i) { const n = prompt("ชื่อโฟลเดอร์:", appData.folders[i].name); if(n) { appData.folders[i].name = n; save(); }}
-    function deleteFolder(i) { if(confirm('ลบโฟลเดอร์? หมวดหมู่ข้างในจะเด้งออกมาที่ทั่วไป')) { appData.folders.splice(i, 1); save(); }}
-    function showCreateDeck() { const n = prompt("ชื่อหมวดหมู่:"); if (n && !appData.decks[n]) { appData.decks[n] = { cards: [], perfectStreak: 0 }; save(); } }
-    function deleteDeck(n) { delete appData.decks[n]; appData.folders.forEach(f=>f.decks=f.decks.filter(d=>d!==n)); save(); }
-    
-    function showDashboard() { document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden')); document.getElementById('view-dashboard').classList.remove('hidden'); renderDashboard(); }
-    function showEditor(id) { currentDeckId = id; document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden')); document.getElementById('view-editor').classList.remove('hidden'); document.getElementById('edit-deck-title').innerText = id; renderCards(); }
-    function renderCards() { const list = document.getElementById('card-list'); list.innerHTML = ''; appData.decks[currentDeckId].cards.forEach((c, i) => { list.innerHTML += `<div class="card-item" style="cursor:default"><div style="flex:1"><div contenteditable="true" onblur="updateC(${i},'q',this.innerText)">${c.q}</div><div contenteditable="true" onblur="updateC(${i},'a',this.innerText)" style="color:var(--text-sub)">${c.a}</div></div><button style="background:var(--danger); color:white; padding:5px 10px; border-radius:5px; border:none" onclick="deleteCard(${i})">ลบ</button></div>`; }); }
-    function updateC(i,f,v) { appData.decks[currentDeckId].cards[i][f] = v; save(); }
-    function deleteCard(i) { appData.decks[currentDeckId].cards.splice(i, 1); save(); renderCards(); }
-    function addCard() { const q = document.getElementById('new-q'), a = document.getElementById('new-a'); if (q.value && a.value) { appData.decks[currentDeckId].cards.push({ q: q.value, a: a.value }); save(); renderCards(); q.value = ''; a.value = ''; q.focus(); } }
-    
-    function startStudy(id, first) { if (appData.decks[id].cards.length === 0) return alert("ไม่มีการ์ด!"); currentDeckId = id; studyQueue = [...appData.decks[id].cards].sort(() => Math.random() - 0.5); failedCards = []; historyStack = []; if (first) currentCardStreak = 0; if (first) isCurrentRunPerfect = true; document.querySelectorAll('.container > div').forEach(d => d.classList.add('hidden')); document.getElementById('view-study').classList.remove('hidden'); nextStudyCard(); }
-    function nextStudyCard() { if (studyQueue.length === 0) { if (failedCards.length > 0) { studyQueue = [...failedCards].sort(() => Math.random() - 0.5); failedCards = []; nextStudyCard(); } else { handleAutoRestart(); } return; } document.getElementById('study-card').classList.remove('flipped'); updateStatsUI(); setTimeout(() => { document.getElementById('study-front').innerText = studyQueue[0].q; document.getElementById('study-back').innerText = studyQueue[0].a; }, 150); }
-    function answer(correct) { historyStack.push({ queue: [...studyQueue], failed: [...failedCards], streak: currentCardStreak, perfect: appData.decks[currentDeckId].perfectStreak, isPerfect: isCurrentRunPerfect }); const c = studyQueue.shift(); if (correct) { currentCardStreak++; } else { currentCardStreak = 0; isCurrentRunPerfect = false; appData.decks[currentDeckId].perfectStreak = 0; failedCards.push(c); save(); } nextStudyCard(); }
-    function undo() { if (!historyStack.length) return; const last = historyStack.pop(); studyQueue = last.queue; failedCards = last.failed; currentCardStreak = last.streak; appData.decks[currentDeckId].perfectStreak = last.perfect; isCurrentRunPerfect = last.isPerfect; save(); nextStudyCard(); }
-    function handleAutoRestart() { if (isCurrentRunPerfect) appData.decks[currentDeckId].perfectStreak++; save(); isCurrentRunPerfect = true; studyQueue = [...appData.decks[currentDeckId].cards].sort(() => Math.random() - 0.5); nextStudyCard(); }
-    
-    function updateStatsUI() { 
-        const perf = appData.decks[currentDeckId].perfectStreak || 0; 
-        const currentRankClass = getRankClass(perf); 
+    window.uploadContentSetToCloud = async () => {
+        const textTitle = document.getElementById('inp-set-title').value.trim();
+        if (!textTitle) return alert("กรุณาระบุชื่อหลักการสอนวิชาเรียน");
+        if (memoryItemsBuffer.length === 0) return alert("จำเป็นต้องมีรายการอย่างน้อย 1 รายการก่อนส่งคำสั่งขึ้นฐานข้อมูล");
+
+        const quotaValue = document.getElementById('inp-quiz-quota').value || "0";
+
+        if (targetContentEditUid) {
+            await updateDoc(doc(db, "contents", targetContentEditUid), {
+                items: memoryItemsBuffer, quizLimit: quotaValue
+            });
+            emitToastNotification("⚡ อัปเดตข้อมูลโครงสร้างการ์ดเดิมสำเร็จแล้ว!");
+        } else {
+            await addDoc(collection(db, "contents"), {
+                classCode: activeClassCode, type: activeCreatorType, title: textTitle, items: memoryItemsBuffer, quizLimit: quotaValue
+            });
+            emitToastNotification("✨ บันทึกสร้างชุดข้อมูลกิจกรรมใหม่สำเร็จ!");
+        }
+        localStorage.removeItem("myflashcard_creator_draft"); // ล้างแบบร่างหลังส่งขึ้นระบบสำเร็จ
+        cancelAndBackToClass();
+    };
+
+    // --- ENGINE: FLASHCARD STUDY MODULE (WITH REAL-TIME HIGH SCORES) ---
+    window.loadFlashcardMode = async (contentId) => {
+        const snapshot = await getDoc(doc(db, "contents", contentId));
+        poolMasterCards = [...snapshot.data().items];
         
-        document.getElementById('stat-cards-left').innerText = studyQueue.length; 
+        queueActiveCards = [...poolMasterCards].sort(() => Math.random() - 0.5);
+        stateStreak = 0; statePerfectStreak = 0; flagIsPerfectInLoop = true;
+        stateHighestStreak = 0; stateHighestPerfect = 0; // รีเซ็ตสถิติประจำรอบใหม่
         
-        document.getElementById('stat-card-streak').innerText = currentCardStreak;
-        document.getElementById('stat-card-streak').className = 'stat-value ' + currentRankClass;
+        changePane('play-fc');
+        drawNextFlashcardNode();
+    };
+
+    function drawNextFlashcardNode() {
+        if (queueActiveCards.length === 0) {
+            if (flagIsPerfectInLoop) {
+                statePerfectStreak++;
+                if (statePerfectStreak > stateHighestPerfect) stateHighestPerfect = statePerfectStreak;
+                emitToastNotification(`🔥 Perfect Round ติดต่อกันรอบที่: ${statePerfectStreak}`);
+            } else {
+                emitToastNotification(`✨ ทบทวนเนื้อหาครบไปอีกหนึ่งรอบแล้ว!`);
+            }
+            
+            commitStatsReportToCloud('flashcard', 'โหมดทบทวนต่อเนื่องไร้สิ้นสุด', stateStreak, flagIsPerfectInLoop, ["เล่นแบบวนลูปต่อเนื่องความเร็วสูง"]);
+            
+            queueActiveCards = [...poolMasterCards].sort(() => Math.random() - 0.5);
+            flagIsPerfectInLoop = true;
+        }
         
-        document.getElementById('stat-deck-streak').innerText = perf; 
-        document.getElementById('stat-deck-streak').className = 'stat-value ' + currentRankClass; 
+        ptrCurrentCard = queueActiveCards.shift();
+        document.getElementById('dom-fc-card-body').classList.remove('flipped');
+        document.getElementById('lbl-fc-remains').innerText = queueActiveCards.length + 1;
+        
+        updateFlashcardRealtimeUI();
+        
+        setTimeout(() => {
+            document.getElementById('dom-fc-text-front').innerText = ptrCurrentCard.q;
+            document.getElementById('dom-fc-text-back').innerText = ptrCurrentCard.a;
+        }, 150);
     }
 
-    document.getElementById('new-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('new-a').focus(); });
-    document.getElementById('new-a').addEventListener('keydown', (e) => { if (e.key === 'Enter') addCard(); });
+    function updateFlashcardRealtimeUI() {
+        // อัปเดตค่าขีดจำกัดสูงสุด
+        if (stateStreak > stateHighestStreak) stateHighestStreak = stateStreak;
+        if (statePerfectStreak > stateHighestPerfect) stateHighestPerfect = statePerfectStreak;
 
-    renderDashboard();
+        const styleClass = computeRankVisualClass(stateHighestPerfect);
+        
+        const nodeNow = document.getElementById('lbl-fc-streak-now');
+        const nodeHigh = document.getElementById('lbl-fc-highest-streak');
+        const nodePerf = document.getElementById('lbl-fc-perfect-now');
+        const nodeHighPerf = document.getElementById('lbl-fc-highest-perfect');
+
+        // Streak และ Perfect เปลี่ยนสีตาม rank
+        nodeNow.className = `fc-stat-num ${styleClass}`;
+        nodePerf.className = `fc-stat-num ${styleClass}`;
+        // Max Streak และ Max Perfect ใช้สีคงที่ (ขาว dark / ดำ light)
+        nodeHigh.className = `fc-stat-num fc-stat-max`;
+        nodeHighPerf.className = `fc-stat-num fc-stat-max`;
+        
+        nodeNow.innerText = stateStreak;
+        nodeHigh.innerText = stateHighestStreak;
+        nodePerf.innerText = statePerfectStreak;
+        nodeHighPerf.innerText = stateHighestPerfect;
+    }
+
+    window.processFcResult = (wasCorrect) => {
+        historyPlayedCards.push({
+            card: ptrCurrentCard,
+            streakBefore: stateStreak,
+            perfectBefore: statePerfectStreak,
+            loopPerfectFlagBefore: flagIsPerfectInLoop,
+            wasAddedToBack: !wasCorrect,
+            queueSnapshot: [...queueActiveCards],
+            highestStreakBefore: stateHighestStreak,
+            highestPerfectBefore: stateHighestPerfect
+        });
+
+        if (wasCorrect) {
+            stateStreak++;
+        } else {
+            stateStreak = 0;
+            statePerfectStreak = 0;
+            flagIsPerfectInLoop = false;
+            queueActiveCards.push(ptrCurrentCard); 
+        }
+        drawNextFlashcardNode();
+    };
+
+    window.triggerFcUndo = () => {
+        if (historyPlayedCards.length === 0) {
+            emitToastNotification("⚠️ ไม่มีขั้นตอนก่อนหน้านี้ให้กู้คืน!");
+            return;
+        }
+
+        const fallbackState = historyPlayedCards.pop();
+
+        // restore queue snapshot + put current card back at front
+        queueActiveCards = [...fallbackState.queueSnapshot];
+        if (ptrCurrentCard) queueActiveCards.unshift(ptrCurrentCard);
+
+        ptrCurrentCard = fallbackState.card;
+        stateStreak = fallbackState.streakBefore;
+        statePerfectStreak = fallbackState.perfectBefore;
+        flagIsPerfectInLoop = fallbackState.loopPerfectFlagBefore;
+        stateHighestStreak = fallbackState.highestStreakBefore;
+        stateHighestPerfect = fallbackState.highestPerfectBefore;
+
+        document.getElementById('dom-fc-card-body').classList.remove('flipped');
+        document.getElementById('lbl-fc-remains').innerText = queueActiveCards.length + 1;
+
+        updateFlashcardRealtimeUI();
+
+        setTimeout(() => {
+            document.getElementById('dom-fc-text-front').innerText = ptrCurrentCard.q;
+            document.getElementById('dom-fc-text-back').innerText = ptrCurrentCard.a;
+        }, 150);
+
+        emitToastNotification("↩️ ย้อนกลับประวัติการกดล่าสุดสำเร็จ");
+    };
+
+    // --- ENGINE: QUIZ PLAYER (WITH AI SHORT ANSWER GRADER) ---
+    window.loadQuizPlayerMode = async (contentId) => {
+        const snap = await getDoc(doc(db, "contents", contentId));
+        const data = snap.data();
+        strActiveQzDocId = contentId;
+        strActiveQzTitle = data.title;
+        poolQzItems = [...data.items].sort(() => Math.random() - 0.5); 
+        ptrQzCurrentIdx = 0; accumulatorQzScore = 0; arrayQzMistakes = [];
+
+        changePane('play-qz');
+        assembleQuizQuestionUI();
+    };
+
+    function assembleQuizQuestionUI() {
+        if (ptrQzCurrentIdx >= poolQzItems.length) {
+            const flagAllCorrect = arrayQzMistakes.length === 0;
+            const logDump = arrayQzMistakes.length > 0 ? arrayQzMistakes : ["ไม่มี (ได้คะแนนเต็ม 💯)"];
+            alert(`🎉 แบบทดสอบประเมินเสสิ้น! คุณทำผลคะแนนรวมได้: ${accumulatorQzScore}/${poolQzItems.length}`);
+            commitStatsReportToCloud('quiz', strActiveQzTitle, accumulatorQzScore, flagAllCorrect, logDump);
+            cancelAndBackToClass();
+            return;
+        }
+
+        const data = poolQzItems[ptrQzCurrentIdx];
+        document.getElementById('lbl-qz-index').innerText = ptrQzCurrentIdx + 1;
+        document.getElementById('lbl-qz-total-count').innerText = poolQzItems.length;
+        document.getElementById('lbl-qz-running-score').innerText = accumulatorQzScore;
+        document.getElementById('lbl-qz-question').innerText = data.q;
+
+        // ตรวจดูเงื่อนไขว่าเป็นโหมดพิมพ์ตอบหรือไม่ (ชอยส์อื่นว่างเปล่าทั้งหมด)
+        const isShortAnswerMode = !data.b && !data.c && !data.d;
+
+        if (isShortAnswerMode) {
+            document.getElementById('ui-qz-choices-block').classList.add('hidden');
+            document.getElementById('ui-qz-input-block').classList.remove('hidden');
+            document.getElementById('inp-qz-student-answer').value = '';
+            document.getElementById('inp-qz-student-answer').disabled = false;
+            document.getElementById('btn-submit-text-answer').disabled = false;
+            document.getElementById('ai-loading-box').style.display = 'none';
+        } else {
+            document.getElementById('ui-qz-choices-block').classList.remove('hidden');
+            document.getElementById('ui-qz-input-block').classList.add('hidden');
+
+            const randomizedChoices = [
+                { txt: data.a, valid: true }, { txt: data.b, valid: false },
+                { txt: data.c, valid: false }, { txt: data.d, valid: false }
+            ].sort(() => Math.random() - 0.5);
+
+            const nodeArea = document.getElementById('ui-qz-choices-block');
+            nodeArea.innerHTML = '';
+            randomizedChoices.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn'; btn.innerText = item.txt;
+                btn.onclick = () => submitQzAnswerAction(item.valid, data.q);
+                nodeArea.appendChild(btn);
+            });
+        }
+    }
+
+    function submitQzAnswerAction(isTrue, textString) {
+        if (isTrue) { accumulatorQzScore++; emitToastNotification("✅ ตอบถูก!"); } 
+        else { arrayQzMistakes.push(textString); emitToastNotification("❌ ตอบผิด!"); }
+        ptrQzCurrentIdx++;
+        assembleQuizQuestionUI();
+    }
+
+    // ฟังก์ชันยิงข้อมูลไปให้ AI ช่วยตรวจคำตอบแบบพิมพ์ตอบอัจฉริยะ (ยืดหยุ่นสะกดคำ/เว้นวรรค)
+    window.submitTextAnswerWithAI = async () => {
+        const studentAns = document.getElementById('inp-qz-student-answer').value.trim();
+        if(!studentAns) return alert("กรุณาป้อนข้อความคำตอบลงในกล่องก่อนส่งคำสั่ง");
+
+        document.getElementById('inp-qz-student-answer').disabled = true;
+        document.getElementById('btn-submit-text-answer').disabled = true;
+        document.getElementById('ai-loading-box').style.display = 'block';
+
+        const currentTask = poolQzItems[ptrQzCurrentIdx];
+
+        // หากคีย์คีย์เอพีไอไม่มี ให้ตกกลับไปเช็คตัวอักษรแบบตรงสายอักขระดิบธรรมดาเป็น Safety Fallback
+        if (GEMINI_API_KEY === "ใส่_API_KEY_ของคุณตรงนี้" || !GEMINI_API_KEY) {
+            console.warn("ไม่พบ API KEY ของเจมินาย ทำการตรวจเช็คสตริงแบบระบบมาตรฐานแทน");
+            const normalize = (s) => s.toLowerCase().replace(/\s+/g, '');
+            const isMatch = normalize(studentAns) === normalize(currentTask.a);
+            document.getElementById('ai-loading-box').style.display = 'none';
+            alert(isMatch ? "✅ ถูกต้อง! (ระบบตรวจธรรมดา)" : `❌ ผิด! คำตอบเฉลยคือ: ${currentTask.a}`);
+            submitQzAnswerAction(isMatch, currentTask.q);
+            return;
+        }
+
+        // ข้อความ Prompt บังคับโครงสร้าง JSON ชัดเจนเพื่อเสถียรภาพในการตัดเกรดของระบบ
+        const systemPrompt = `คุณคืออาจารย์ปัญญาประดิษฐ์ผู้เชี่ยวชาญ คอยทำหน้าที่ตรวจข้อสอบแบบพิมพ์คำตอบสั้นของนักเรียนเป็นภาษาไทย 
+        จงพิจารณาโจทย์คำถาม: "${currentTask.q}" และคำตอบที่ถูกต้องตามคีย์เฉลยคือ: "${currentTask.a}" 
+        หากนักเรียนพิมพ์คำตอบตอบมาว่า: "${studentAns}" ให้คุณวิเคราะห์ว่าเนื้อหามีความหมายใกล้เคียง ถูกต้อง ยอมรับได้หรือไม่ (โปรดผ่อนปรนเรื่องการเผลอเว้นวรรคเยอะเกินไป หรือการสะกดการันต์ผิดเล็กน้อย รวมถึงคำพ้องความหมายที่สื่อสิ่งเดียวกัน)
+        
+        จงตอบกลับเป็นรูปแบบข้อความ JSON ที่ถูกต้องตรงตามรูปแบบนี้เท่านั้น ห้ามพิมพ์คำอธิบายอื่นนอกเหนือโครงสร้าง JSON นี้นะ:
+        {
+          "isCorrect": true หรือ false,
+          "reason": "อธิบายสั้นๆ ภาษาไทยไม่เกิน 1 บรรทัดว่าถูกหรือผิดเพราะอะไร"
+        }`;
+
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+            });
+            const resData = await res.json();
+            const rawText = resData.candidates[0].content.parts[0].text;
+            
+            // คัดแยกส่วนหัวท้ายข้อความ JSON เผื่อ AI แปะ markdown block ติดมา
+            const cleanedJsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const decision = JSON.parse(cleanedJsonText);
+
+            document.getElementById('ai-loading-box').style.display = 'none';
+            alert(`🤖 ครู AI ตัดสินว่า: ${decision.isCorrect ? "✅ ถูกต้อง" : "❌ ผิด"}\n📝 เหตุผล: ${decision.reason}`);
+            
+            submitQzAnswerAction(decision.isCorrect, currentTask.q);
+
+        } catch (err) {
+            console.error("AI grading failed, using exact fallback:", err);
+            document.getElementById('ai-loading-box').style.display = 'none';
+            // กรณีเกิดปัญหาหลุดการเชื่อมต่อ API ตกกลับไปตรวจแบบเปรียบเทียบข้อความปกติ
+            const isExact = studentAns.toLowerCase() === currentTask.a.toLowerCase();
+            alert(isExact ? "✅ ถูกต้อง!" : `❌ ผิด! เฉลย: ${currentTask.a}`);
+            submitQzAnswerAction(isExact, currentTask.q);
+        }
+    };
+
+    async function commitStatsReportToCloud(type, title, recordVal, perfectFlag, bugsArray) {
+        await addDoc(collection(db, "stats"), {
+            classCode: activeClassCode, studentUid: activeUser.uid,
+            studentName: activeUser.displayName, type: type,
+            setName: title, recordValue: recordVal, isPerfect: perfectFlag,
+            wrongQuestions: bugsArray, timestamp: new Date()
+        });
+    }
+
+    // --- ADVANCED METRICS & DATA MANAGEMENT ENGINE ---
+    window.loadAdvancedAnalytics = async () => {
+        document.getElementById('ui-response-cards-container').innerHTML = '<p style="text-align:center;color:var(--text-sub);">กำลังวิเคราะห์ข้อมูลสถิติ...</p>';
+        
+        const qSnap = await getDocs(query(collection(db, "stats"), where("classCode", "==", activeClassCode)));
+        cachedStatsArray = [];
+        const rosterSet = new Set();
+        
+        let accumulatorQuizScore = 0, countQuizStats = 0, peakPerfectStreak = 0;
+        let mapWrongQuestionsFrequency = {};
+        let countPerfect = 0, countMistake = 0, countFc = 0, countQz = 0;
+
+        qSnap.forEach(docItem => {
+            const key = docItem.id;
+            const data = docItem.data();
+            cachedStatsArray.push({ ...data, docId: key });
+            rosterSet.add(data.studentName);
+
+            if (data.isPerfect) countPerfect++; else countMistake++;
+            if (data.type === 'quiz') { accumulatorQuizScore += data.recordValue; countQuizStats++; countQz++; }
+            if (data.type === 'flashcard') { countFc++;
+                if (data.isPerfect && data.recordValue > peakPerfectStreak) peakPerfectStreak = data.recordValue;
+            }
+
+            if (data.wrongQuestions && data.type === 'quiz') {
+                data.wrongQuestions.forEach(question => {
+                    if (question !== "ไม่มี (ได้คะแนนเต็ม 💯)") {
+                        mapWrongQuestionsFrequency[question] = (mapWrongQuestionsFrequency[question] || 0) + 1;
+                    }
+                });
+            }
+        });
+
+        const totalSubmissions = countPerfect + countMistake;
+
+        // Summary cards
+        document.getElementById('lbl-stat-total-student').innerText = `${rosterSet.size} คน`;
+        document.getElementById('lbl-stat-avg-score').innerText = countQuizStats > 0 ? `${(accumulatorQuizScore / countQuizStats).toFixed(1)}` : '-';
+        document.getElementById('lbl-stat-max-streak').innerText = peakPerfectStreak;
+        document.getElementById('lbl-stat-total-submissions').innerText = totalSubmissions;
+        document.getElementById('lbl-analytics-subtitle').innerText = `ข้อมูลจาก ${rosterSet.size} คน · ${totalSubmissions} ครั้งที่ทำ`;
+        document.getElementById('lbl-responses-count').innerText = `(${totalSubmissions} รายการ)`;
+
+        // Perfect donut chart
+        const perfectPct = totalSubmissions > 0 ? Math.round(countPerfect / totalSubmissions * 100) : 0;
+        const circumference = 100;
+        document.getElementById('chart-perfect-ring').setAttribute('stroke-dasharray', `${perfectPct} ${circumference - perfectPct}`);
+        document.getElementById('chart-perfect-pct').innerText = `${perfectPct}%`;
+        document.getElementById('lbl-stat-perfect-count').innerText = countPerfect;
+        document.getElementById('lbl-stat-mistake-count').innerText = countMistake;
+
+        // Activity bar chart
+        const maxActivity = Math.max(countFc, countQz, 1);
+        document.getElementById('lbl-bar-fc-count').innerText = `${countFc} ครั้ง`;
+        document.getElementById('lbl-bar-qz-count').innerText = `${countQz} ครั้ง`;
+        setTimeout(() => {
+            document.getElementById('bar-fc').style.width = `${(countFc / maxActivity) * 100}%`;
+            document.getElementById('bar-qz').style.width = `${(countQz / maxActivity) * 100}%`;
+        }, 100);
+
+        // Top mistakes
+        const sortedMistakesArr = Object.entries(mapWrongQuestionsFrequency).sort((a, b) => b[1] - a[1]);
+        const targetOutputDiv = document.getElementById('ui-stat-error-rank-list');
+        if (sortedMistakesArr.length === 0) {
+            targetOutputDiv.innerHTML = '<span style="color:var(--success)">🌟 ไม่มีสถิติคำถามที่ตอบผิดในห้องเรียนนี้</span>';
+        } else {
+            targetOutputDiv.innerHTML = sortedMistakesArr.slice(0, 5).map(([text, freq], idx) => {
+                const barW = Math.round((freq / sortedMistakesArr[0][1]) * 100);
+                const medal = ['🥇','🥈','🥉','4️⃣','5️⃣'][idx];
+                return `<div style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;">
+                        <span>${medal} ${text}</span><span style="color:var(--danger);font-weight:bold;">${freq} ครั้ง</span>
+                    </div>
+                    <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+                        <div style="height:100%;background:#dc3545;border-radius:999px;width:${barW}%;"></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Filter dropdown
+        const selector = document.getElementById('sel-stat-individual-filter');
+        selector.innerHTML = '<option value="all">-- ทั้งหมด --</option>';
+        rosterSet.forEach(name => { selector.innerHTML += `<option value="${name}">${name}</option>`; });
+
+        generateResponseCards(cachedStatsArray);
+        changePane('analytics');
+    };
+
+    window.runIndividualStatFilter = () => {
+        const option = document.getElementById('sel-stat-individual-filter').value;
+        const filtered = option === 'all' ? cachedStatsArray : cachedStatsArray.filter(el => el.studentName === option);
+        document.getElementById('lbl-responses-count').innerText = `(${filtered.length} รายการ)`;
+        generateResponseCards(filtered);
+    };
+
+    function generateResponseCards(array) {
+        const container = document.getElementById('ui-response-cards-container');
+        
+        if (array.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:var(--text-sub); padding:20px 0;">ไม่พบข้อมูลรายงานผลสถิติ</p>';
+            return;
+        }
+
+        // For flashcard: keep only best record per student+set (highest streak)
+        // For quiz: keep all attempts (each attempt is meaningful)
+        const fcBestMap = {};
+        const quizItems = [];
+
+        array.forEach(item => {
+            if (item.type === 'flashcard') {
+                const key = `${item.studentName}||${item.setName}`;
+                if (!fcBestMap[key] || item.recordValue > fcBestMap[key].recordValue) {
+                    fcBestMap[key] = item;
+                }
+            } else {
+                quizItems.push(item);
+            }
+        });
+
+        const fcItems = Object.values(fcBestMap);
+
+        // Sort: quiz by newest, fc by highest streak
+        quizItems.sort((a, b) => {
+            const tA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(0);
+            const tB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(0);
+            return tB - tA;
+        });
+        fcItems.sort((a, b) => b.recordValue - a.recordValue);
+
+        const renderItem = (item) => {
+            const isQuiz = item.type === 'quiz';
+            const isPerfect = item.isPerfect;
+            const mistakesHTML = item.wrongQuestions && item.wrongQuestions.length > 0 && item.wrongQuestions[0] !== "ไม่มี (ได้คะแนนเต็ม 💯)"
+                ? item.wrongQuestions.map(q => `<div style="padding:5px 10px;background:rgba(220,53,69,0.06);border-left:3px solid var(--danger);border-radius:4px;font-size:13px;margin-top:4px;">❌ ${q}</div>`).join('')
+                : '';
+            const timeStr = item.timestamp?.toDate ? item.timestamp.toDate().toLocaleString('th-TH', {dateStyle:'short', timeStyle:'short'}) : '';
+
+            return `
+            <div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;background:var(--bg);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:${isQuiz ? '#6f42c1' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;color:white;font-size:15px;flex-shrink:0;">${isQuiz ? '📝' : '🃏'}</div>
+                        <div>
+                            <div style="font-weight:bold;font-size:14px;">${item.studentName}</div>
+                            <div style="font-size:12px;color:var(--text-sub);">${item.setName}${timeStr ? ' · ' + timeStr : ''}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        ${isPerfect ? `<span style="background:rgba(40,167,69,0.1);color:var(--success);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:bold;">🏆 Perfect</span>` : ''}
+                        <span style="background:rgba(49,130,206,0.1);color:var(--primary);padding:3px 10px;border-radius:999px;font-size:13px;font-weight:bold;">${isQuiz ? `${item.recordValue} คะแนน` : `Streak ${item.recordValue}`}</span>
+                        <button onclick="purgeSingleStatRecord('${item.docId}')" style="background:none;border:none;cursor:pointer;color:var(--text-sub);font-size:15px;padding:4px;" title="ลบ">🗑️</button>
+                    </div>
+                </div>
+                ${mistakesHTML ? `<div style="margin-top:8px;">${mistakesHTML}</div>` : ''}
+            </div>`;
+        };
+
+        // Group: Flashcard best records first, then Quiz attempts
+        let html = '';
+        if (fcItems.length > 0) {
+            html += `<div style="font-size:12px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🃏 Flashcard — สถิติสูงสุดต่อคน</div>`;
+            html += fcItems.map(renderItem).join('');
+        }
+        if (quizItems.length > 0) {
+            html += `<div style="font-size:12px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin:${fcItems.length > 0 ? '16px' : '0'} 0 8px;">📝 Quiz — ทุกครั้งที่ทำ</div>`;
+            html += quizItems.map(renderItem).join('');
+        }
+
+        container.innerHTML = html;
+    }
+
+    window.purgeSingleStatRecord = async (docId) => {
+        if (!confirm("คุณต้องการสั่งลบประวัติคะแนนสถิติชิ้นนี้ออกจากฐานข้อมูลใช่หรือไม่?")) return;
+        await deleteDoc(doc(db, "stats", docId));
+        emitToastNotification("🗑️ ลบเรคคอร์ดข้อมูลเรียบร้อย");
+        loadAdvancedAnalytics(); 
+    };
+
+    window.purgeAllClassroomStats = async () => {
+        if (!confirm("⚠️ คำเตือน: คุณแน่ใจใช่หรือไม่ว่าต้องการลบข้อมูลสถิติและคะแนนทั้งหมดของนักเรียนทุกคนในห้องเรียนนี้? (ไม่สามารถกู้คืนได้)")) return;
+        
+        const qSnap = await getDocs(query(collection(db, "stats"), where("classCode", "==", activeClassCode)));
+        if (qSnap.empty) {
+            alert("ไม่พบข้อมูลสถิติให้ลบในห้องเรียนนี้");
+            return;
+        }
+
+        let deletePromises = [];
+        qSnap.forEach(docItem => {
+            deletePromises.push(deleteDoc(doc(db, "stats", docItem.id)));
+        });
+
+        await Promise.all(deletePromises);
+        emitToastNotification("🗑️ ล้างข้อมูลสถิติของคลาสนี้ทั้งหมดเสร็จสิ้น!");
+        loadAdvancedAnalytics();
+    };
+
+    window.fetchAndDisplayMembers = async () => {
+        document.getElementById('lbl-member-teacher-name').innerText = activeClassMetadata.ownerName;
+        const box = document.getElementById('ui-member-rows-container');
+        box.innerHTML = 'กำลังประมวลผลดึงรายชื่อคู่เรียนร่วมชั้น...';
+        
+        const isManager = activeClassMetadata.ownerId === activeUser.uid || activeUser.displayName.toLowerCase() === 'admin';
+
+        if (!activeClassMetadata.students || activeClassMetadata.students.length === 0) {
+            box.innerHTML = '<span style="color:var(--text-sub)">ไม่มีรายชื่อนักเรียนสมัครเข้าเรียนในคลาสนี้</span>';
+            document.getElementById('lbl-member-counter').innerText = '0';
+        } else {
+            document.getElementById('lbl-member-counter').innerText = activeClassMetadata.students.length;
+            let combinedHTML = '<ul style="margin:0; padding-left:20px;">';
+            
+            for (let targetUid of activeClassMetadata.students) {
+                const subQuery = await getDocs(query(collection(db, "stats"), where("studentUid", "==", targetUid)));
+                let nameBuffer = "ผู้ใช้ใหม่ (ยังไม่มีการทำบันทึกผลสถิติ)";
+                if (!subQuery.empty) { nameBuffer = subQuery.docs[0].data().studentName; }
+                
+                let kickButtonHTML = '';
+                if (isManager) {
+                    kickButtonHTML = ` <button class="btn-danger-sm" style="padding:2px 8px; font-size:11px; margin-left:10px;" onclick="kickStudentOut('${targetUid}', '${nameBuffer}')">❌ เตะออก</button>`;
+                }
+                
+                combinedHTML += `<li><strong>${nameBuffer}</strong> <small style="color:var(--text-sub)">(${targetUid.substring(0, 6)})</small>${kickButtonHTML}</li>`;
+            }
+            combinedHTML += '</ul>';
+            box.innerHTML = combinedHTML;
+        }
+        changePane('members');
+    };
+
+    // SYSTEM: THEME SWITCHER 
+    window.toggleTheme = () => {
+        const status = document.body.getAttribute('data-theme');
+        document.body.setAttribute('data-theme', status === 'light' ? 'dark' : 'light');
+    };
+
+    // --- SYSTEM: ADMIN PANEL ---
+    let adminAllUsers = [];
+
+    window.openAdminPanel = () => {
+        if (!activeUser || activeUser.displayName.toLowerCase() !== 'admin') {
+            alert("คุณไม่มีสิทธิ์เข้าถึงส่วนนี้");
+            return;
+        }
+        changePane('admin');
+        adminLoadUsers();
+    };
+
+    window.adminLoadUsers = async () => {
+        const listDiv = document.getElementById('ui-admin-user-list');
+        const countDiv = document.getElementById('ui-admin-user-count');
+        listDiv.innerHTML = '<p style="color:var(--text-sub);">กำลังโหลดรายชื่อผู้ใช้งาน...</p>';
+        
+        try {
+            const snap = await getDocs(collection(db, "users"));
+            adminAllUsers = [];
+            snap.forEach(d => adminAllUsers.push({ uid: d.id, ...d.data() }));
+            adminAllUsers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            adminRenderUsers(adminAllUsers);
+        } catch (err) {
+            listDiv.innerHTML = `<p style="color:var(--danger);">เกิดข้อผิดพลาด: ${err.message}</p>`;
+        }
+    };
+
+    window.adminFilterUsers = () => {
+        const q = document.getElementById('inp-admin-search').value.trim().toLowerCase();
+        const filtered = adminAllUsers.filter(u => (u.name || '').toLowerCase().includes(q));
+        adminRenderUsers(filtered);
+    };
+
+    function adminRenderUsers(users) {
+        const listDiv = document.getElementById('ui-admin-user-list');
+        const countDiv = document.getElementById('ui-admin-user-count');
+        countDiv.innerText = `พบผู้ใช้งานทั้งหมด: ${users.length} บัญชี`;
+
+        if (users.length === 0) {
+            listDiv.innerHTML = '<p style="color:var(--text-sub);">ไม่พบผู้ใช้งาน</p>';
+            return;
+        }
+
+        listDiv.innerHTML = users.map(u => {
+            const isBanned = u.banned === true;
+            const isAdminAcc = (u.name || '').toLowerCase() === 'admin';
+            const badgeHtml = isAdminAcc
+                ? `<span style="background:#dc3545;color:white;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:bold;margin-left:6px;">ADMIN</span>`
+                : isBanned
+                ? `<span style="background:#6c757d;color:white;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:bold;margin-left:6px;">BANNED</span>`
+                : '';
+            
+            const actionBtns = isAdminAcc ? '' : `
+                <div style="display:flex;gap:8px;">
+                    ${isBanned
+                        ? `<button class="btn-secondary-sm" onclick="adminUnbanUser('${u.uid}','${u.name}')">✅ ปลดแบน</button>`
+                        : `<button class="btn-secondary-sm" style="background:#fd7e14;color:white;" onclick="adminBanUser('${u.uid}','${u.name}')">🚫 แบน</button>`
+                    }
+                    <button class="btn-danger-sm" onclick="adminDeleteUser('${u.uid}','${u.name}')">🗑️ ลบบัญชี</button>
+                </div>`;
+
+            return `
+                <div style="background:var(--container-bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px var(--shadow);">
+                    <div>
+                        <strong style="font-size:15px;">${u.name || '(ไม่มีชื่อ)'}${badgeHtml}</strong>
+                        <div style="font-size:12px;color:var(--text-sub);margin-top:3px;">UID: ${u.uid.substring(0,12)}... &nbsp;|&nbsp; Role: ${u.role || 'user'}</div>
+                    </div>
+                    ${actionBtns}
+                </div>`;
+        }).join('');
+    }
+
+    window.adminBanUser = async (uid, name) => {
+        if (!confirm(`แบนบัญชีผู้ใช้ "${name}" ใช่หรือไม่?\n(ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้จนกว่าจะถูกปลดแบน)`)) return;
+        await updateDoc(doc(db, "users", uid), { banned: true });
+        emitToastNotification(`🚫 แบน ${name} สำเร็จแล้ว`);
+        adminLoadUsers();
+    };
+
+    window.adminUnbanUser = async (uid, name) => {
+        if (!confirm(`ปลดแบนบัญชีผู้ใช้ "${name}" ใช่หรือไม่?`)) return;
+        await updateDoc(doc(db, "users", uid), { banned: false });
+        emitToastNotification(`✅ ปลดแบน ${name} สำเร็จแล้ว`);
+        adminLoadUsers();
+    };
+
+    window.adminDeleteUser = async (uid, name) => {
+        if (!confirm(`⚠️ ลบบัญชีผู้ใช้ "${name}" ออกจากระบบอย่างถาวรใช่หรือไม่?\n(ข้อมูลสถิติของผู้ใช้นี้จะยังคงอยู่ แต่บัญชีจะถูกลบออก)`)) return;
+        await deleteDoc(doc(db, "users", uid));
+        emitToastNotification(`🗑️ ลบบัญชี ${name} สำเร็จแล้ว`);
+        adminLoadUsers();
+    };
 </script>
 </body>
 </html>
