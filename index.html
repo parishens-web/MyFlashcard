@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MyFlashcard v8 (AI Engine & Safety Draft)</title>
+    <title>MyFlashcard v13 (Pre/Post-test & Research Analytics)</title>
     <style>
         :root {
             --bg: #ebf1f5; --container-bg: #ffffff; --text-main: #2d3748;
@@ -116,7 +116,7 @@
         </div>
     </div>
 
-    <div class="app-title">🚀 Myflashcard v10</div>
+    <div class="app-title">🚀 Myflashcard v13</div>
 
     <div id="pane-auth" class="box hidden">
         <h3 style="text-align:center; margin-top:0;">เข้าสู่ระบบ / ลงทะเบียนผู้ใช้งานใหม่</h3>
@@ -146,6 +146,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <button class="btn-back-style" onclick="changePane('dashboard')">← คลัง</button>
             <div style="display:flex; gap:10px;">
+                <button id="btn-research-analytics" class="btn-secondary-sm" style="font-weight:bold; background:#17a2b8; color:white;" onclick="loadAdvancedAnalytics()">📊 สถิติงานวิจัย</button>
                 <button class="btn-secondary-sm" style="font-weight:bold;" onclick="fetchAndDisplayMembers()">👥 รายชื่อสมาชิก</button>
                 <button id="btn-leave" class="btn-danger-sm" style="display:none;" onclick="leaveCurrentClass()">🚶 ออกจากคลาสนี้</button>
             </div>
@@ -253,108 +254,136 @@
     </div>
 
     <div id="pane-play-qz" class="hidden box">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <!-- Header bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <button class="btn-secondary-sm" onclick="cancelAndBackToClass()">ออกจากการทำข้อสอบ</button>
-            <div>ข้อสอบลำดับที่: <b id="lbl-qz-index">0</b>/<b id="lbl-qz-total-count">0</b> | รวมคะแนน: <b id="lbl-qz-running-score" style="color:var(--success)">0</b></div>
+            <div style="font-size:14px; color:var(--text-sub);">
+                <span id="lbl-qz-mode-badge" style="background:#6f42c1;color:white;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:bold;margin-right:8px;">PRE-TEST</span>
+                ข้อ <b id="lbl-qz-index">1</b> / <b id="lbl-qz-total-count">0</b>
+            </div>
         </div>
+
+        <!-- Progress bar -->
+        <div style="background:var(--border);border-radius:999px;height:6px;margin-bottom:24px;overflow:hidden;">
+            <div id="bar-qz-progress" style="height:100%;background:#6f42c1;border-radius:999px;width:0%;transition:width 0.4s;"></div>
+        </div>
+
+        <!-- Question -->
+        <h2 id="lbl-qz-question" style="margin:0 0 24px 0; font-size:22px; line-height:1.4;">โจทย์...</h2>
         
-        <h2 id="lbl-qz-question" style="margin:30px 0; font-size:22px;">โจทย์แบบทดสอบย่อย...</h2>
-        
+        <!-- Multiple choice block -->
         <div id="ui-qz-choices-block"></div>
 
+        <!-- Short answer block -->
         <div id="ui-qz-input-block" class="hidden">
             <input type="text" id="inp-qz-student-answer" placeholder="พิมพ์คำตอบของคุณลงที่นี่..." style="font-size:18px; padding:15px;">
-            <button class="btn-main" style="background:#6f42c1; font-size:16px;" id="btn-submit-text-answer" onclick="submitTextAnswerWithAI()">ส่งคำตอบให้ครู AI ตรวจสอบ 🤖</button>
-            
+            <button class="btn-main" style="background:#6f42c1; font-size:16px;" id="btn-submit-text-answer" onclick="submitTextAnswerWithAI()">ยืนยันคำตอบ ➡️</button>
             <div id="ai-loading-box" class="ai-status-box">
-                ⏳ <b>ครู AI กำลังวิเคราะห์คำตอบและไวยากรณ์ของคุณในเวลาเรียลไทม์ โปรดรอสักครู่...</b>
+                ⏳ <b>กำลังตรวจสอบคำตอบ โปรดรอ...</b>
             </div>
+        </div>
+
+        <!-- Navigation buttons (Undo + Next) -->
+        <div style="display:flex; gap:12px; margin-top:20px;" id="ui-qz-nav-btns">
+            <button class="btn-undo-style" style="flex:1;" onclick="triggerQzUndo()">↩️ Undo (ย้อนกลับ)</button>
+        </div>
+
+        <!-- Submit button (shown only on last question after answering) -->
+        <div id="ui-qz-submit-zone" class="hidden" style="margin-top:16px;">
+            <button class="btn-main" style="background:#28a745; font-size:17px; padding:16px;" onclick="finalSubmitQuiz()">
+                ✅ ส่งคำตอบทั้งหมด (Submit)
+            </button>
         </div>
     </div>
 
     <div id="pane-analytics" class="hidden">
         <!-- Header -->
-        <div style="background:var(--primary); border-radius:16px 16px 0 0; padding:28px 30px 20px; margin-bottom:0;">
+        <div style="background:linear-gradient(135deg,#2b6cb0,#6f42c1); border-radius:16px 16px 0 0; padding:28px 30px 20px; margin-bottom:0;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <h2 style="margin:0; color:white; font-size:24px;">📊 รายงานผลสถิติห้องเรียน</h2>
+                    <h2 style="margin:0; color:white; font-size:24px;">📊 รายงานผลการทดลอง (Research Analytics)</h2>
                     <p style="margin:6px 0 0; color:rgba(255,255,255,0.8); font-size:14px;" id="lbl-analytics-subtitle">กำลังโหลด...</p>
                 </div>
                 <div style="display:flex;gap:10px;">
                     <button class="btn-secondary-sm" onclick="cancelAndBackToClass()">← กลับ</button>
-                    <button class="btn-danger-sm" onclick="purgeAllClassroomStats()">🗑️ ล้างสถิติทั้งหมด</button>
+                    <button class="btn-danger-sm" onclick="purgeAllClassroomStats()">🗑️ ล้างสถิติ</button>
                 </div>
+            </div>
+            <!-- Tab switcher -->
+            <div style="display:flex; gap:10px; margin-top:18px;">
+                <button id="tab-btn-overview" onclick="switchAnalyticsTab('overview')" style="background:white;color:#2b6cb0;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;">📈 ภาพรวม</button>
+                <button id="tab-btn-individual" onclick="switchAnalyticsTab('individual')" style="background:rgba(255,255,255,0.2);color:white;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;">👤 รายบุคคล</button>
             </div>
         </div>
 
-        <!-- Summary Cards (Google Forms style) -->
-        <div style="background:var(--container-bg); border:1px solid var(--border); border-top:none; border-radius:0 0 16px 16px; padding:24px; margin-bottom:16px; box-shadow:0 4px 20px var(--shadow);">
-            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:24px;">
-                <div style="background:rgba(49,130,206,0.08); border:1px solid rgba(49,130,206,0.2); border-radius:12px; padding:18px; text-align:center;">
-                    <div style="font-size:28px; font-weight:bold; color:var(--primary);" id="lbl-stat-total-student">0</div>
-                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">นักเรียนที่ส่งข้อมูล</div>
+        <!-- TAB: OVERVIEW -->
+        <div id="tab-overview" style="background:var(--container-bg); border:1px solid var(--border); border-top:none; border-radius:0 0 16px 16px; padding:28px; box-shadow:0 4px 20px var(--shadow);">
+            
+            <!-- Key Stats Cards -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-bottom:28px;">
+                <div style="background:linear-gradient(135deg,rgba(49,130,206,0.1),rgba(49,130,206,0.05)); border:1px solid rgba(49,130,206,0.25); border-radius:14px; padding:18px; text-align:center;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">นักเรียนทั้งหมด</div>
+                    <div style="font-size:30px; font-weight:bold; color:var(--primary);" id="lbl-stat-total-student">0</div>
+                    <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">คน</div>
                 </div>
-                <div style="background:rgba(40,167,69,0.08); border:1px solid rgba(40,167,69,0.2); border-radius:12px; padding:18px; text-align:center;">
-                    <div style="font-size:28px; font-weight:bold; color:var(--success);" id="lbl-stat-avg-score">-</div>
-                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">คะแนนเฉลี่ย (Quiz)</div>
+                <div style="background:linear-gradient(135deg,rgba(253,126,20,0.1),rgba(253,126,20,0.05)); border:1px solid rgba(253,126,20,0.25); border-radius:14px; padding:18px; text-align:center;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Pre-test เฉลี่ย</div>
+                    <div style="font-size:30px; font-weight:bold; color:#fd7e14;" id="lbl-stat-pre-avg">-</div>
+                    <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">คะแนน</div>
                 </div>
-                <div style="background:rgba(111,66,193,0.08); border:1px solid rgba(111,66,193,0.2); border-radius:12px; padding:18px; text-align:center;">
-                    <div style="font-size:28px; font-weight:bold; color:#6f42c1;" id="lbl-stat-max-streak">0</div>
-                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">Max Perfect Streak</div>
+                <div style="background:linear-gradient(135deg,rgba(40,167,69,0.1),rgba(40,167,69,0.05)); border:1px solid rgba(40,167,69,0.25); border-radius:14px; padding:18px; text-align:center;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Post-test เฉลี่ย</div>
+                    <div style="font-size:30px; font-weight:bold; color:var(--success);" id="lbl-stat-post-avg">-</div>
+                    <div style="font-size:11px;color:var(--text-sub);margin-top:2px;">คะแนน</div>
                 </div>
-                <div style="background:rgba(253,126,20,0.08); border:1px solid rgba(253,126,20,0.2); border-radius:12px; padding:18px; text-align:center;">
-                    <div style="font-size:28px; font-weight:bold; color:#fd7e14;" id="lbl-stat-total-submissions">0</div>
-                    <div style="font-size:13px; color:var(--text-sub); margin-top:4px;">ครั้งที่ทำทั้งหมด</div>
+                <div style="background:linear-gradient(135deg,rgba(111,66,193,0.1),rgba(111,66,193,0.05)); border:1px solid rgba(111,66,193,0.25); border-radius:14px; padding:18px; text-align:center;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Normalized Gain (&lt;g&gt;)</div>
+                    <div style="font-size:30px; font-weight:bold; color:#6f42c1;" id="lbl-stat-gain">-</div>
+                    <div style="font-size:11px;color:var(--text-sub);margin-top:2px;" id="lbl-stat-gain-level">-</div>
+                </div>
+                <div style="background:linear-gradient(135deg,rgba(220,53,69,0.1),rgba(220,53,69,0.05)); border:1px solid rgba(220,53,69,0.25); border-radius:14px; padding:18px; text-align:center;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">คะแนนสูงสุด</div>
+                    <div style="font-size:30px; font-weight:bold; color:var(--danger);" id="lbl-stat-max-score">-</div>
+                    <div style="font-size:11px;color:var(--text-sub);margin-top:2px;" id="lbl-stat-total-q">/ 0 ข้อ</div>
                 </div>
             </div>
 
-            <!-- Perfect vs Mistake Chart -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
-                <!-- Donut chart: Perfect rate -->
-                <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px;">
-                    <h4 style="margin:0 0 16px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">อัตราความสำเร็จ</h4>
-                    <div style="display:flex; align-items:center; gap:20px;">
-                        <div style="position:relative; width:90px; height:90px; flex-shrink:0;">
-                            <svg viewBox="0 0 36 36" style="width:90px;height:90px;transform:rotate(-90deg);">
-                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border)" stroke-width="3"/>
-                                <circle id="chart-perfect-ring" cx="18" cy="18" r="15.9" fill="none" stroke="#28a745" stroke-width="3" stroke-dasharray="0 100" stroke-linecap="round"/>
-                            </svg>
-                            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-                                <div style="font-size:15px;font-weight:bold;" id="chart-perfect-pct">0%</div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="width:12px;height:12px;border-radius:50%;background:#28a745;display:inline-block;"></span><span style="font-size:13px;">สมบูรณ์แบบ: <b id="lbl-stat-perfect-count">0</b> ครั้ง</span></div>
-                            <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:#dc3545;display:inline-block;"></span><span style="font-size:13px;">มีข้อผิด: <b id="lbl-stat-mistake-count">0</b> ครั้ง</span></div>
-                        </div>
+            <!-- Bar Chart: Pre vs Post comparison -->
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:24px;">
+                <h4 style="margin:0 0 20px; font-size:15px; color:var(--text-main); font-weight:700;">📊 เปรียบเทียบคะแนนเฉลี่ย Pre-test vs Post-test</h4>
+                <div id="ui-prepost-barchart" style="display:flex; align-items:flex-end; gap:40px; height:180px; padding:0 20px;">
+                    <div style="flex:1; display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <div style="font-size:13px;font-weight:bold;color:#fd7e14;" id="lbl-chart-pre-val">-</div>
+                        <div id="bar-chart-pre" style="width:100%;background:linear-gradient(to top,#fd7e14,#ffc107);border-radius:8px 8px 0 0;height:0%;transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1);min-height:4px;"></div>
+                        <div style="font-size:13px;color:var(--text-sub);font-weight:600;">Pre-test</div>
+                    </div>
+                    <div style="flex:1; display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <div style="font-size:13px;font-weight:bold;color:#28a745;" id="lbl-chart-post-val">-</div>
+                        <div id="bar-chart-post" style="width:100%;background:linear-gradient(to top,#28a745,#56cc9d);border-radius:8px 8px 0 0;height:0%;transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.2s;min-height:4px;"></div>
+                        <div style="font-size:13px;color:var(--text-sub);font-weight:600;">Post-test</div>
                     </div>
                 </div>
-
-                <!-- Bar: Activity type breakdown -->
-                <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px;">
-                    <h4 style="margin:0 0 16px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">ประเภทกิจกรรม</h4>
-                    <div style="margin-bottom:12px;">
-                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>🃏 Flashcard</span><span id="lbl-bar-fc-count">0 ครั้ง</span></div>
-                        <div style="background:var(--border);border-radius:999px;height:10px;overflow:hidden;"><div id="bar-fc" style="height:100%;background:var(--primary);border-radius:999px;width:0%;transition:width 0.6s;"></div></div>
-                    </div>
-                    <div>
-                        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>📝 Quiz</span><span id="lbl-bar-qz-count">0 ครั้ง</span></div>
-                        <div style="background:var(--border);border-radius:999px;height:10px;overflow:hidden;"><div id="bar-qz" style="height:100%;background:#6f42c1;border-radius:999px;width:0%;transition:width 0.6s;"></div></div>
-                    </div>
+                <div style="display:flex;align-items:center;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                    <span style="font-size:13px;color:var(--text-sub);">การเปลี่ยนแปลง:</span>
+                    <span style="font-size:18px;font-weight:bold;" id="lbl-stat-score-change">-</span>
+                    <span style="font-size:13px;color:var(--text-sub);">| SD Pre: <b id="lbl-stat-pre-sd">-</b> | SD Post: <b id="lbl-stat-post-sd">-</b></span>
                 </div>
             </div>
+
+            <!-- Research presentation stats (computed by JS) -->
+            <div id="ui-research-stats-block" style="margin-bottom:24px;"></div>
 
             <!-- Top mistakes -->
-            <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:0;">
-                <h4 style="margin:0 0 12px; font-size:14px; color:var(--text-sub); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">⚠️ คำถามที่ตอบผิดบ่อยที่สุด</h4>
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:20px;">
+                <h4 style="margin:0 0 14px; font-size:14px; color:var(--text-sub); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">⚠️ ข้อที่นักเรียนตอบผิดบ่อยที่สุด</h4>
                 <div id="ui-stat-error-rank-list" style="font-size:14px; color:var(--text-main); line-height:1.8;">-</div>
             </div>
         </div>
 
-        <!-- Individual responses (Google Forms style) -->
-        <div style="background:var(--container-bg); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:0 4px 20px var(--shadow);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="margin:0; font-size:16px;">รายการคำตอบทั้งหมด <span id="lbl-responses-count" style="color:var(--text-sub); font-weight:normal; font-size:14px;"></span></h3>
+        <!-- TAB: INDIVIDUAL -->
+        <div id="tab-individual" class="hidden" style="background:var(--container-bg); border:1px solid var(--border); border-top:none; border-radius:0 0 16px 16px; padding:24px; box-shadow:0 4px 20px var(--shadow);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+                <h3 style="margin:0; font-size:16px;">รายงานผลรายบุคคล <span id="lbl-responses-count" style="color:var(--text-sub); font-weight:normal; font-size:14px;"></span></h3>
                 <div style="display:flex;gap:10px;align-items:center;">
                     <label style="font-size:13px; color:var(--text-sub);">กรองตามชื่อ:</label>
                     <select id="sel-stat-individual-filter" onchange="runIndividualStatFilter()" style="width:auto; padding:8px 12px; margin-bottom:0; font-size:13px;">
@@ -362,6 +391,11 @@
                     </select>
                 </div>
             </div>
+
+            <!-- Individual Pre/Post comparison table -->
+            <div id="ui-individual-prepost-table" style="margin-bottom:20px; overflow-x:auto;"></div>
+
+            <!-- Detailed response cards -->
             <div id="ui-response-cards-container"></div>
         </div>
     </div>
@@ -425,6 +459,13 @@
     let stateStreak = 0, statePerfectStreak = 0, flagIsPerfectInLoop = true, ptrCurrentCard = null;
     let stateHighestStreak = 0, stateHighestPerfect = 0; // เพิ่ม Real-time High Score
     let poolQzItems = [], ptrQzCurrentIdx = 0, accumulatorQzScore = 0, arrayQzMistakes = [], strActiveQzDocId = '', strActiveQzTitle = '';
+    // New: Pre/Post-test state
+    let qzAnswerHistory = []; // {idx, selectedCorrect, questionText} for undo
+    let qzUserAnswers = []; // final answers array indexed by question
+    let qzCurrentMode = 'quiz'; // 'pretest' | 'posttest' | 'quiz'
+    let qzTotalItems = 0;
+    let isQzSubmittingNow = false; // กันกดส่งซ้ำ
+    const QZ_SUBMIT_BUTTON_HTML = `<button class="btn-main" style="background:#28a745; font-size:17px; padding:16px;" onclick="finalSubmitQuiz()">✅ ส่งคำตอบทั้งหมด (Submit)</button>`;
 
     window.addEventListener('click', (e) => {
         if (!e.target.matches('.btn-dots')) {
@@ -701,12 +742,26 @@
                 item.items.forEach(i => { if(!i.b && !i.c && !i.d) textTypeCounter++; });
                 let modeLabel = textTypeCounter === item.items.length ? "✏️ โหมดพิมพ์ตอบ AI" : (textTypeCounter > 0 ? "📝 ผสม เลือก+พิมพ์" : "🔘 โหมดชอยส์เลือกตอบ");
 
-                let actionBtnMarkup = `<button class="btn-main" style="width:auto; padding:6px 16px; background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}')">ทำโจทย์</button>`;
+                let actionBtnMarkup = `
+                    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#fd7e14;" onclick="loadQuizPlayerMode('${docId}','pretest')">🟠 Pre-test</button>
+                            <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#28a745;" onclick="loadQuizPlayerMode('${docId}','posttest')">🟢 Post-test</button>
+                        </div>
+                        <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}','quiz')">📝 ทำโจทย์ปกติ</button>
+                    </div>`;
 
                 if (allowedCap > 0 && completedRuns >= allowedCap && !hasPower) {
                     actionBtnMarkup = `<span style="color:var(--danger); font-size:13px; font-weight:bold;">🔒 สิทธิ์เต็ม (${completedRuns}/${allowedCap} ครั้ง)</span>`;
                 } else if (allowedCap > 0) {
-                    actionBtnMarkup = `<button class="btn-main" style="width:auto; padding:6px 16px; background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}')">ทำโจทย์ (${completedRuns}/${allowedCap})</button>`;
+                    actionBtnMarkup = `
+                    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#fd7e14;" onclick="loadQuizPlayerMode('${docId}','pretest')">🟠 Pre-test</button>
+                            <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#28a745;" onclick="loadQuizPlayerMode('${docId}','posttest')">🟢 Post-test</button>
+                        </div>
+                        <button class="btn-main" style="width:auto;padding:5px 12px;font-size:12px;background:#6f42c1;" onclick="loadQuizPlayerMode('${docId}','quiz')">📝 ทำโจทย์ (${completedRuns}/${allowedCap})</button>
+                    </div>`;
                 }
 
                 qzArea.innerHTML += `
@@ -1062,36 +1117,64 @@
         emitToastNotification("↩️ ย้อนกลับประวัติการกดล่าสุดสำเร็จ");
     };
 
-    // --- ENGINE: QUIZ PLAYER (WITH AI SHORT ANSWER GRADER) ---
-    window.loadQuizPlayerMode = async (contentId) => {
+    // --- ENGINE: QUIZ PLAYER v13 (Google Forms Style — No instant feedback, Undo, Submit at end) ---
+    window.loadQuizPlayerMode = async (contentId, mode = 'quiz') => {
         const snap = await getDoc(doc(db, "contents", contentId));
         const data = snap.data();
         strActiveQzDocId = contentId;
         strActiveQzTitle = data.title;
-        poolQzItems = [...data.items].sort(() => Math.random() - 0.5); 
-        ptrQzCurrentIdx = 0; accumulatorQzScore = 0; arrayQzMistakes = [];
+        qzCurrentMode = mode;
+        
+        // Use same question set for pre/post (same items, shuffled separately each time)
+        poolQzItems = [...data.items].sort(() => Math.random() - 0.5);
+        ptrQzCurrentIdx = 0;
+        accumulatorQzScore = 0;
+        arrayQzMistakes = [];
+        qzAnswerHistory = [];
+        qzUserAnswers = new Array(poolQzItems.length).fill(null);
+        qzTotalItems = poolQzItems.length;
+        isQzSubmittingNow = false;
+
+        // รีเซ็ตปุ่มส่งคำตอบให้กลับมาเป็นปุ่มเดิมทุกครั้งที่เริ่มทำข้อสอบ (แก้บั๊กปุ่มส่งหายหลังทำรอบแรก)
+        document.getElementById('ui-qz-submit-zone').innerHTML = QZ_SUBMIT_BUTTON_HTML;
+        document.getElementById('ui-qz-submit-zone').classList.add('hidden');
+        document.getElementById('ui-qz-nav-btns').classList.remove('hidden');
+
+        // Set mode badge
+        const badge = document.getElementById('lbl-qz-mode-badge');
+        if (mode === 'pretest') { badge.textContent = 'PRE-TEST'; badge.style.background = '#fd7e14'; }
+        else if (mode === 'posttest') { badge.textContent = 'POST-TEST'; badge.style.background = '#28a745'; }
+        else { badge.textContent = 'QUIZ'; badge.style.background = '#6f42c1'; }
 
         changePane('play-qz');
         assembleQuizQuestionUI();
     };
 
     function assembleQuizQuestionUI() {
-        if (ptrQzCurrentIdx >= poolQzItems.length) {
-            const flagAllCorrect = arrayQzMistakes.length === 0;
-            const logDump = arrayQzMistakes.length > 0 ? arrayQzMistakes : ["ไม่มี (ได้คะแนนเต็ม 💯)"];
-            alert(`🎉 แบบทดสอบประเมินเสสิ้น! คุณทำผลคะแนนรวมได้: ${accumulatorQzScore}/${poolQzItems.length}`);
-            commitStatsReportToCloud('quiz', strActiveQzTitle, accumulatorQzScore, flagAllCorrect, logDump);
-            cancelAndBackToClass();
+        const total = poolQzItems.length;
+        document.getElementById('lbl-qz-index').innerText = Math.min(ptrQzCurrentIdx + 1, total);
+        document.getElementById('lbl-qz-total-count').innerText = total;
+        
+        // Progress bar
+        const pct = Math.round((ptrQzCurrentIdx / total) * 100);
+        document.getElementById('bar-qz-progress').style.width = pct + '%';
+
+        // Hide submit zone by default
+        document.getElementById('ui-qz-submit-zone').classList.add('hidden');
+
+        if (ptrQzCurrentIdx >= total) {
+            // All answered — show submit
+            document.getElementById('ui-qz-submit-zone').classList.remove('hidden');
+            document.getElementById('lbl-qz-question').innerText = '✅ ตอบครบทุกข้อแล้ว กดปุ่มส่งคำตอบด้านล่างได้เลย!';
+            document.getElementById('ui-qz-choices-block').innerHTML = '';
+            document.getElementById('ui-qz-input-block').classList.add('hidden');
+            document.getElementById('bar-qz-progress').style.width = '100%';
             return;
         }
 
         const data = poolQzItems[ptrQzCurrentIdx];
-        document.getElementById('lbl-qz-index').innerText = ptrQzCurrentIdx + 1;
-        document.getElementById('lbl-qz-total-count').innerText = poolQzItems.length;
-        document.getElementById('lbl-qz-running-score').innerText = accumulatorQzScore;
-        document.getElementById('lbl-qz-question').innerText = data.q;
+        document.getElementById('lbl-qz-question').innerText = `${ptrQzCurrentIdx + 1}. ${data.q}`;
 
-        // ตรวจดูเงื่อนไขว่าเป็นโหมดพิมพ์ตอบหรือไม่ (ชอยส์อื่นว่างเปล่าทั้งหมด)
         const isShortAnswerMode = !data.b && !data.c && !data.d;
 
         if (isShortAnswerMode) {
@@ -1108,24 +1191,142 @@
             const randomizedChoices = [
                 { txt: data.a, valid: true }, { txt: data.b, valid: false },
                 { txt: data.c, valid: false }, { txt: data.d, valid: false }
-            ].sort(() => Math.random() - 0.5);
+            ].filter(c => c.txt).sort(() => Math.random() - 0.5);
 
             const nodeArea = document.getElementById('ui-qz-choices-block');
             nodeArea.innerHTML = '';
             randomizedChoices.forEach(item => {
                 const btn = document.createElement('button');
-                btn.className = 'choice-btn'; btn.innerText = item.txt;
-                btn.onclick = () => submitQzAnswerAction(item.valid, data.q);
+                btn.className = 'choice-btn';
+                btn.innerText = item.txt;
+                btn.onclick = () => recordQzAnswer(item.valid, data.q, item.txt);
                 nodeArea.appendChild(btn);
             });
         }
     }
 
-    function submitQzAnswerAction(isTrue, textString) {
-        if (isTrue) { accumulatorQzScore++; emitToastNotification("✅ ตอบถูก!"); } 
-        else { arrayQzMistakes.push(textString); emitToastNotification("❌ ตอบผิด!"); }
+    // Record answer without revealing correct/wrong — Google Forms style
+    function recordQzAnswer(isCorrect, questionText, chosenText) {
+        // Save to history for undo
+        qzAnswerHistory.push({
+            idx: ptrQzCurrentIdx,
+            wasCorrect: isCorrect,
+            questionText: questionText
+        });
+        qzUserAnswers[ptrQzCurrentIdx] = { isCorrect, questionText, chosenText };
+        if (isCorrect) accumulatorQzScore++;
+        else arrayQzMistakes.push(questionText);
+
         ptrQzCurrentIdx++;
         assembleQuizQuestionUI();
+    }
+
+    // Undo last answer
+    window.triggerQzUndo = () => {
+        if (qzAnswerHistory.length === 0) {
+            emitToastNotification("⚠️ ไม่มีข้อก่อนหน้าให้ย้อนกลับ");
+            return;
+        }
+        const last = qzAnswerHistory.pop();
+        // Undo score/mistake
+        if (last.wasCorrect) accumulatorQzScore--;
+        else arrayQzMistakes = arrayQzMistakes.filter((q, i, arr) => {
+            if (q === last.questionText) { arr.splice(i, 1); return false; }
+            return true;
+        });
+        qzUserAnswers[last.idx] = null;
+        ptrQzCurrentIdx = last.idx;
+        assembleQuizQuestionUI();
+        emitToastNotification("↩️ ย้อนกลับข้อก่อนหน้าสำเร็จ");
+    };
+
+    // Final submit — show results and save to Firestore
+    window.finalSubmitQuiz = async () => {
+        if (isQzSubmittingNow) return; // กันการกดส่งซ้ำซ้อน
+        isQzSubmittingNow = true;
+
+        const total = poolQzItems.length;
+        const flagAllCorrect = arrayQzMistakes.length === 0;
+        const logDump = arrayQzMistakes.length > 0 ? [...new Set(arrayQzMistakes)] : ["ไม่มี (ได้คะแนนเต็ม 💯)"];
+
+        // Build result summary UI
+        const resultHTML = buildQuizResultSummaryHTML(accumulatorQzScore, total, qzUserAnswers, qzCurrentMode);
+
+        // แสดงผลสรุปทั้งหมดทันที (ไม่รอการบันทึกขึ้นคลาวด์ เพื่อไม่ให้หน้าค้างข้อมูลไม่ครบ)
+        document.getElementById('lbl-qz-question').innerHTML = resultHTML;
+        document.getElementById('ui-qz-choices-block').innerHTML = '';
+        document.getElementById('ui-qz-choices-block').classList.remove('hidden');
+        document.getElementById('ui-qz-input-block').classList.add('hidden');
+        document.getElementById('ui-qz-nav-btns').classList.add('hidden');
+        document.getElementById('bar-qz-progress').style.width = '100%';
+        document.getElementById('lbl-qz-index').innerText = total;
+
+        // ใส่ปุ่มกลับสู่ห้องเรียนทันที (ไม่ต้องรอผลการบันทึก)
+        const submitZone = document.getElementById('ui-qz-submit-zone');
+        submitZone.innerHTML = '';
+        const backBtn = document.createElement('button');
+        backBtn.className = 'btn-main';
+        backBtn.style.marginTop = '20px';
+        backBtn.innerText = '← กลับสู่ห้องเรียน';
+        backBtn.onclick = () => {
+            document.getElementById('ui-qz-nav-btns').classList.remove('hidden');
+            cancelAndBackToClass();
+        };
+        submitZone.appendChild(backBtn);
+        submitZone.classList.remove('hidden');
+
+        // บันทึกขึ้น Firestore แยกออกมา พร้อมแจ้งเตือนถ้าพลาด
+        try {
+            await commitStatsReportToCloud(qzCurrentMode === 'quiz' ? 'quiz' : qzCurrentMode, strActiveQzTitle, accumulatorQzScore, flagAllCorrect, logDump, total);
+            emitToastNotification("✅ บันทึกคะแนนเรียบร้อยแล้ว");
+        } catch (err) {
+            console.error("บันทึกคะแนนไม่สำเร็จ:", err);
+            emitToastNotification("⚠️ บันทึกคะแนนไม่สำเร็จ กรุณาเช็คอินเทอร์เน็ตแล้วแจ้งครูผู้สอน");
+        }
+    };
+
+    function buildQuizResultSummaryHTML(score, total, answers, mode) {
+        const pct = Math.round(score / total * 100);
+        const modeLabel = mode === 'pretest' ? '🟠 Pre-test' : mode === 'posttest' ? '🟢 Post-test' : '📝 Quiz';
+        let grade = pct >= 80 ? '🌟 ยอดเยี่ยม!' : pct >= 60 ? '👍 ดีมาก' : pct >= 40 ? '📚 พอใช้' : '💪 ต้องฝึกเพิ่ม';
+
+        const summaryHTML = `<div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:14px;color:var(--text-sub);margin-bottom:4px;">${modeLabel} — เสร็จสิ้น</div>
+            <div style="font-size:48px;font-weight:bold;color:${pct>=60?'#28a745':'#dc3545'};">${score}<span style="font-size:20px;color:var(--text-sub)">/${total}</span></div>
+            <div style="font-size:18px;margin:6px 0;">${grade}</div>
+            <div style="font-size:14px;color:var(--text-sub);">${pct}% ถูกต้อง</div>
+        </div>`;
+
+        // โหมด Pre-test: แสดงเฉพาะคะแนนรวม ไม่เปิดเฉลย (ป้องกันคะแนน Post-test เอนเอียงในงานวิจัย)
+        if (mode === 'pretest') {
+            return summaryHTML + `<div style="background:rgba(253,126,20,0.08);border-left:3px solid #fd7e14;border-radius:6px;padding:12px 16px;font-size:14px;text-align:left;">
+                🔒 โหมด Pre-test จะแสดงเฉพาะคะแนนรวม — เฉลยรายข้อจะเปิดให้ดูหลังจากเรียนจบและทำ Post-test แล้ว
+            </div>`;
+        }
+
+        // โหมดอื่น: เฉลยครบทุกข้อ พร้อมคำตอบที่ผู้เรียนเลือก
+        let detailHTML = answers.map((ans, i) => {
+            const item = poolQzItems[i];
+            if (!item) return '';
+            const answered = !!ans;
+            const isCorrect = answered && ans.isCorrect;
+            const icon = !answered ? '⬜' : isCorrect ? '✅' : '❌';
+            const color = !answered ? 'rgba(108,117,125,0.08)' : isCorrect ? 'rgba(40,167,69,0.08)' : 'rgba(220,53,69,0.08)';
+            const borderColor = !answered ? '#6c757d' : isCorrect ? '#28a745' : '#dc3545';
+            const chosenLine = answered
+                ? `<div style="margin-top:4px;font-size:13px;color:${isCorrect ? '#28a745' : '#dc3545'};">✍️ คำตอบของคุณ: ${ans.chosenText !== undefined && ans.chosenText !== null && ans.chosenText !== '' ? ans.chosenText : '-'}</div>`
+                : `<div style="margin-top:4px;font-size:13px;color:#6c757d;">✍️ ไม่ได้ตอบข้อนี้</div>`;
+            return `<div style="background:${color};border-left:3px solid ${borderColor};border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:14px;">
+                <div>${icon} <b>ข้อ ${i+1}:</b> ${item.q}</div>
+                ${chosenLine}
+                <div style="color:#28a745;margin-top:2px;font-size:13px;">✔ เฉลย: ${item.a}</div>
+            </div>`;
+        }).join('');
+
+        return summaryHTML + `<div style="text-align:left;margin-top:16px;">
+            <div style="font-size:13px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">เฉลยรายข้อ (พร้อมคำตอบที่คุณเลือก)</div>
+            ${detailHTML}
+        </div>`;
     }
 
     // ฟังก์ชันยิงข้อมูลไปให้ AI ช่วยตรวจคำตอบแบบพิมพ์ตอบอัจฉริยะ (ยืดหยุ่นสะกดคำ/เว้นวรรค)
@@ -1139,18 +1340,14 @@
 
         const currentTask = poolQzItems[ptrQzCurrentIdx];
 
-        // หากคีย์คีย์เอพีไอไม่มี ให้ตกกลับไปเช็คตัวอักษรแบบตรงสายอักขระดิบธรรมดาเป็น Safety Fallback
         if (GEMINI_API_KEY === "ใส่_API_KEY_ของคุณตรงนี้" || !GEMINI_API_KEY) {
-            console.warn("ไม่พบ API KEY ของเจมินาย ทำการตรวจเช็คสตริงแบบระบบมาตรฐานแทน");
             const normalize = (s) => s.toLowerCase().replace(/\s+/g, '');
             const isMatch = normalize(studentAns) === normalize(currentTask.a);
             document.getElementById('ai-loading-box').style.display = 'none';
-            alert(isMatch ? "✅ ถูกต้อง! (ระบบตรวจธรรมดา)" : `❌ ผิด! คำตอบเฉลยคือ: ${currentTask.a}`);
-            submitQzAnswerAction(isMatch, currentTask.q);
+            recordQzAnswer(isMatch, currentTask.q, studentAns);
             return;
         }
 
-        // ข้อความ Prompt บังคับโครงสร้าง JSON ชัดเจนเพื่อเสถียรภาพในการตัดเกรดของระบบ
         const systemPrompt = `คุณคืออาจารย์ปัญญาประดิษฐ์ผู้เชี่ยวชาญ คอยทำหน้าที่ตรวจข้อสอบแบบพิมพ์คำตอบสั้นของนักเรียนเป็นภาษาไทย 
         จงพิจารณาโจทย์คำถาม: "${currentTask.q}" และคำตอบที่ถูกต้องตามคีย์เฉลยคือ: "${currentTask.a}" 
         หากนักเรียนพิมพ์คำตอบตอบมาว่า: "${studentAns}" ให้คุณวิเคราะห์ว่าเนื้อหามีความหมายใกล้เคียง ถูกต้อง ยอมรับได้หรือไม่ (โปรดผ่อนปรนเรื่องการเผลอเว้นวรรคเยอะเกินไป หรือการสะกดการันต์ผิดเล็กน้อย รวมถึงคำพ้องความหมายที่สื่อสิ่งเดียวกัน)
@@ -1169,36 +1366,46 @@
             });
             const resData = await res.json();
             const rawText = resData.candidates[0].content.parts[0].text;
-            
-            // คัดแยกส่วนหัวท้ายข้อความ JSON เผื่อ AI แปะ markdown block ติดมา
             const cleanedJsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
             const decision = JSON.parse(cleanedJsonText);
-
             document.getElementById('ai-loading-box').style.display = 'none';
-            alert(`🤖 ครู AI ตัดสินว่า: ${decision.isCorrect ? "✅ ถูกต้อง" : "❌ ผิด"}\n📝 เหตุผล: ${decision.reason}`);
-            
-            submitQzAnswerAction(decision.isCorrect, currentTask.q);
-
+            recordQzAnswer(decision.isCorrect, currentTask.q, studentAns);
         } catch (err) {
             console.error("AI grading failed, using exact fallback:", err);
             document.getElementById('ai-loading-box').style.display = 'none';
-            // กรณีเกิดปัญหาหลุดการเชื่อมต่อ API ตกกลับไปตรวจแบบเปรียบเทียบข้อความปกติ
             const isExact = studentAns.toLowerCase() === currentTask.a.toLowerCase();
-            alert(isExact ? "✅ ถูกต้อง!" : `❌ ผิด! เฉลย: ${currentTask.a}`);
-            submitQzAnswerAction(isExact, currentTask.q);
+            recordQzAnswer(isExact, currentTask.q, studentAns);
         }
     };
 
-    async function commitStatsReportToCloud(type, title, recordVal, perfectFlag, bugsArray) {
+    async function commitStatsReportToCloud(type, title, recordVal, perfectFlag, bugsArray, totalQ = 0) {
         await addDoc(collection(db, "stats"), {
             classCode: activeClassCode, studentUid: activeUser.uid,
             studentName: activeUser.displayName, type: type,
             setName: title, recordValue: recordVal, isPerfect: perfectFlag,
-            wrongQuestions: bugsArray, timestamp: new Date()
+            wrongQuestions: bugsArray, totalQuestions: totalQ,
+            timestamp: new Date()
         });
     }
 
-    // --- ADVANCED METRICS & DATA MANAGEMENT ENGINE ---
+    // --- ADVANCED RESEARCH ANALYTICS ENGINE (v13) ---
+    let analyticsCurrentTab = 'overview';
+
+    window.switchAnalyticsTab = (tab) => {
+        analyticsCurrentTab = tab;
+        document.getElementById('tab-overview').classList.toggle('hidden', tab !== 'overview');
+        document.getElementById('tab-individual').classList.toggle('hidden', tab !== 'individual');
+        const btnO = document.getElementById('tab-btn-overview');
+        const btnI = document.getElementById('tab-btn-individual');
+        if (tab === 'overview') {
+            btnO.style.cssText = 'background:white;color:#2b6cb0;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;';
+            btnI.style.cssText = 'background:rgba(255,255,255,0.2);color:white;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;';
+        } else {
+            btnI.style.cssText = 'background:white;color:#2b6cb0;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;';
+            btnO.style.cssText = 'background:rgba(255,255,255,0.2);color:white;border:none;padding:8px 22px;border-radius:999px;font-weight:bold;cursor:pointer;font-size:14px;';
+        }
+    };
+
     window.loadAdvancedAnalytics = async () => {
         document.getElementById('ui-response-cards-container').innerHTML = '<p style="text-align:center;color:var(--text-sub);">กำลังวิเคราะห์ข้อมูลสถิติ...</p>';
         
@@ -1206,57 +1413,108 @@
         cachedStatsArray = [];
         const rosterSet = new Set();
         
-        let accumulatorQuizScore = 0, countQuizStats = 0, peakPerfectStreak = 0;
         let mapWrongQuestionsFrequency = {};
-        let countPerfect = 0, countMistake = 0, countFc = 0, countQz = 0;
+        // Pre/Post per-student per-set: keep latest
+        let preMap = {}; // key: `${studentName}||${setName}` => {score, total}
+        let postMap = {};
+        let allTotalQ = 0;
+        let maxScore = 0;
 
         qSnap.forEach(docItem => {
-            const key = docItem.id;
-            const data = docItem.data();
-            cachedStatsArray.push({ ...data, docId: key });
+            const data = { ...docItem.data(), docId: docItem.id };
+            cachedStatsArray.push(data);
             rosterSet.add(data.studentName);
 
-            if (data.isPerfect) countPerfect++; else countMistake++;
-            if (data.type === 'quiz') { accumulatorQuizScore += data.recordValue; countQuizStats++; countQz++; }
-            if (data.type === 'flashcard') { countFc++;
-                if (data.isPerfect && data.recordValue > peakPerfectStreak) peakPerfectStreak = data.recordValue;
+            const key = `${data.studentName}||${data.setName}`;
+            
+            if (data.type === 'pretest') {
+                // keep latest pre per student+set
+                if (!preMap[key] || (data.timestamp?.toDate ? data.timestamp.toDate() : new Date(0)) > (preMap[key].ts || new Date(0))) {
+                    preMap[key] = { score: data.recordValue, total: data.totalQuestions || 0, ts: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(0), studentName: data.studentName, setName: data.setName };
+                }
+                if (data.totalQuestions > allTotalQ) allTotalQ = data.totalQuestions;
+            } else if (data.type === 'posttest') {
+                if (!postMap[key] || (data.timestamp?.toDate ? data.timestamp.toDate() : new Date(0)) > (postMap[key].ts || new Date(0))) {
+                    postMap[key] = { score: data.recordValue, total: data.totalQuestions || 0, ts: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(0), studentName: data.studentName, setName: data.setName };
+                }
+                if (data.totalQuestions > allTotalQ) allTotalQ = data.totalQuestions;
             }
 
-            if (data.wrongQuestions && data.type === 'quiz') {
-                data.wrongQuestions.forEach(question => {
-                    if (question !== "ไม่มี (ได้คะแนนเต็ม 💯)") {
-                        mapWrongQuestionsFrequency[question] = (mapWrongQuestionsFrequency[question] || 0) + 1;
+            // นับคะแนนสูงสุดเฉพาะข้อมูล Pre-test/Post-test เท่านั้น (ไม่รวม Streak ของ Flashcard ที่อาจเกินจำนวนข้อ)
+            if ((data.type === 'pretest' || data.type === 'posttest') && data.recordValue > maxScore) maxScore = data.recordValue;
+
+            if (data.wrongQuestions && (data.type === 'quiz' || data.type === 'pretest' || data.type === 'posttest')) {
+                data.wrongQuestions.forEach(q => {
+                    if (q && q !== "ไม่มี (ได้คะแนนเต็ม 💯)") {
+                        mapWrongQuestionsFrequency[q] = (mapWrongQuestionsFrequency[q] || 0) + 1;
                     }
                 });
             }
         });
 
-        const totalSubmissions = countPerfect + countMistake;
+        // Compute Pre/Post stats for students who have both
+        const pairedKeys = Object.keys(preMap).filter(k => postMap[k]);
+        let preScores = [], postScores = [];
+        let pairedData = []; // เก็บข้อมูลรายคู่สำหรับสถิติวิจัย
+        pairedKeys.forEach(k => {
+            const total = preMap[k].total || postMap[k].total || allTotalQ || 1;
+            const prePct = preMap[k].score / total * 100;
+            const postPct = postMap[k].score / total * 100;
+            preScores.push(prePct);
+            postScores.push(postPct);
+            pairedData.push({
+                name: preMap[k].studentName, setName: preMap[k].setName,
+                preRaw: preMap[k].score, postRaw: postMap[k].score, total: total,
+                prePct: prePct, postPct: postPct
+            });
+        });
 
-        // Summary cards
-        document.getElementById('lbl-stat-total-student').innerText = `${rosterSet.size} คน`;
-        document.getElementById('lbl-stat-avg-score').innerText = countQuizStats > 0 ? `${(accumulatorQuizScore / countQuizStats).toFixed(1)}` : '-';
-        document.getElementById('lbl-stat-max-streak').innerText = peakPerfectStreak;
-        document.getElementById('lbl-stat-total-submissions').innerText = totalSubmissions;
-        document.getElementById('lbl-analytics-subtitle').innerText = `ข้อมูลจาก ${rosterSet.size} คน · ${totalSubmissions} ครั้งที่ทำ`;
-        document.getElementById('lbl-responses-count').innerText = `(${totalSubmissions} รายการ)`;
+        // Also collect students who only have pre or post
+        const onlyPreKeys = Object.keys(preMap).filter(k => !postMap[k]);
+        const onlyPostKeys = Object.keys(postMap).filter(k => !preMap[k]);
+        
+        const avgPre = preScores.length > 0 ? preScores.reduce((a,b)=>a+b,0)/preScores.length : null;
+        const avgPost = postScores.length > 0 ? postScores.reduce((a,b)=>a+b,0)/postScores.length : null;
 
-        // Perfect donut chart
-        const perfectPct = totalSubmissions > 0 ? Math.round(countPerfect / totalSubmissions * 100) : 0;
-        const circumference = 100;
-        document.getElementById('chart-perfect-ring').setAttribute('stroke-dasharray', `${perfectPct} ${circumference - perfectPct}`);
-        document.getElementById('chart-perfect-pct').innerText = `${perfectPct}%`;
-        document.getElementById('lbl-stat-perfect-count').innerText = countPerfect;
-        document.getElementById('lbl-stat-mistake-count').innerText = countMistake;
+        // Normalized Gain Score: <g> = (avgPost - avgPre) / (100 - avgPre)
+        let gainScore = null, gainLevel = '-';
+        if (avgPre !== null && avgPost !== null && avgPre < 100) {
+            gainScore = (avgPost - avgPre) / (100 - avgPre);
+            gainLevel = gainScore >= 0.7 ? '🔴 สูง (High)' : gainScore >= 0.3 ? '🟡 ปานกลาง (Medium)' : '🟢 ต่ำ (Low)';
+        }
 
-        // Activity bar chart
-        const maxActivity = Math.max(countFc, countQz, 1);
-        document.getElementById('lbl-bar-fc-count').innerText = `${countFc} ครั้ง`;
-        document.getElementById('lbl-bar-qz-count').innerText = `${countQz} ครั้ง`;
+        // Standard Deviation
+        const sd = (arr) => {
+            if (arr.length < 2) return 0;
+            const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+            return Math.sqrt(arr.map(x=>(x-mean)**2).reduce((a,b)=>a+b,0)/(arr.length-1));
+        };
+
+        // Update UI
+        document.getElementById('lbl-analytics-subtitle').innerText = `ข้อมูลจาก ${rosterSet.size} คน · Pre-test: ${Object.keys(preMap).length} รายการ · Post-test: ${Object.keys(postMap).length} รายการ`;
+        document.getElementById('lbl-stat-total-student').innerText = rosterSet.size;
+        document.getElementById('lbl-stat-pre-avg').innerText = avgPre !== null ? avgPre.toFixed(1) + '%' : '-';
+        document.getElementById('lbl-stat-post-avg').innerText = avgPost !== null ? avgPost.toFixed(1) + '%' : '-';
+        document.getElementById('lbl-stat-gain').innerText = gainScore !== null ? gainScore.toFixed(2) : '-';
+        document.getElementById('lbl-stat-gain-level').innerText = gainLevel;
+        document.getElementById('lbl-stat-max-score').innerText = maxScore;
+        document.getElementById('lbl-stat-total-q').innerText = `/ ${allTotalQ} ข้อ`;
+
+        // Bar chart animation
+        document.getElementById('lbl-chart-pre-val').innerText = avgPre !== null ? avgPre.toFixed(1) + '%' : 'ยังไม่มีข้อมูล';
+        document.getElementById('lbl-chart-post-val').innerText = avgPost !== null ? avgPost.toFixed(1) + '%' : 'ยังไม่มีข้อมูล';
+        const maxVal = Math.max(avgPre || 0, avgPost || 0, 1);
         setTimeout(() => {
-            document.getElementById('bar-fc').style.width = `${(countFc / maxActivity) * 100}%`;
-            document.getElementById('bar-qz').style.width = `${(countQz / maxActivity) * 100}%`;
-        }, 100);
+            document.getElementById('bar-chart-pre').style.height = avgPre !== null ? `${(avgPre/maxVal)*100}%` : '2%';
+            document.getElementById('bar-chart-post').style.height = avgPost !== null ? `${(avgPost/maxVal)*100}%` : '2%';
+        }, 200);
+
+        const diff = (avgPre !== null && avgPost !== null) ? (avgPost - avgPre) : null;
+        document.getElementById('lbl-stat-score-change').innerHTML = diff !== null 
+            ? `<span style="color:${diff>=0?'#28a745':'#dc3545'}">${diff>=0?'+':''}${diff.toFixed(1)}%</span>` 
+            : '-';
+        document.getElementById('lbl-stat-pre-sd').innerText = preScores.length >= 2 ? sd(preScores).toFixed(2) : '-';
+        document.getElementById('lbl-stat-post-sd').innerText = postScores.length >= 2 ? sd(postScores).toFixed(2) : '-';
 
         // Top mistakes
         const sortedMistakesArr = Object.entries(mapWrongQuestionsFrequency).sort((a, b) => b[1] - a[1]);
@@ -1278,14 +1536,299 @@
             }).join('');
         }
 
+        // ตารางสถิติเพื่อการนำเสนอผลการทดลอง (ภาพรวมห้อง)
+        renderResearchStatsBlock(pairedData);
+
+        // Individual tab: Pre/Post comparison table
+        buildIndividualPrePostTable(preMap, postMap, allTotalQ);
+
         // Filter dropdown
         const selector = document.getElementById('sel-stat-individual-filter');
         selector.innerHTML = '<option value="all">-- ทั้งหมด --</option>';
         rosterSet.forEach(name => { selector.innerHTML += `<option value="${name}">${name}</option>`; });
+        document.getElementById('lbl-responses-count').innerText = `(${cachedStatsArray.length} รายการ)`;
 
         generateResponseCards(cachedStatsArray);
+        switchAnalyticsTab('overview');
         changePane('analytics');
     };
+
+    // ====== RESEARCH STATISTICS ENGINE (สถิติเพื่อการนำเสนอผลการทดลอง) ======
+    // สูตรอ้างอิง:
+    //   พัฒนาการสัมพัทธ์: ศิริชัย กาญจนวาสี. (2552). ทฤษฎีการทดสอบแบบดั้งเดิม. (หน้า 268)
+    //   ดัชนีประสิทธิผล E.I.: เผชิญ กิจระการ และสมนึก ภัททิยธนี. (2545). วารสารการวัดผลการศึกษา มมส, 8(1), 30-36.
+    //   t-test: Student. (1908). The probable error of a mean. Biometrika, 6(1), 1-25.
+
+    const statMean = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+    const statSD = arr => {
+        if (arr.length < 2) return null;
+        const m = statMean(arr);
+        return Math.sqrt(arr.map(x=>(x-m)**2).reduce((a,b)=>a+b,0)/(arr.length-1));
+    };
+
+    // เกณฑ์ระดับพัฒนาการสัมพัทธ์ (ศิริชัย กาญจนวาสี, 2552: 268)
+    function relativeGainLevel(rg) {
+        if (rg === null) return '-';
+        if (rg > 75) return 'สูงมาก';
+        if (rg > 50) return 'สูง';
+        if (rg > 25) return 'กลาง';
+        if (rg >= 0) return 'ต้น';
+        return 'ถดถอย';
+    }
+    function relativeGainColor(rg) {
+        if (rg === null) return 'var(--text-sub)';
+        if (rg > 75) return '#28a745';
+        if (rg > 50) return '#20c997';
+        if (rg > 25) return '#ffc107';
+        if (rg >= 0) return '#fd7e14';
+        return '#dc3545';
+    }
+
+    // log-gamma (Lanczos) สำหรับแจกแจง t
+    function lnGamma(z) {
+        const g = [676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,
+                   12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+        if (z < 0.5) return Math.log(Math.PI/Math.sin(Math.PI*z)) - lnGamma(1-z);
+        z -= 1;
+        let x = 0.99999999999980993;
+        for (let i=0;i<8;i++) x += g[i]/(z+i+1);
+        const t = z + 7.5;
+        return 0.5*Math.log(2*Math.PI) + (z+0.5)*Math.log(t) - t + Math.log(x);
+    }
+
+    // ค่า p แบบหางเดียวของ paired t-test (อินทิเกรต pdf ของแจกแจง t ด้วย Simpson's rule)
+    function tTestPValueOneTailed(t, df) {
+        if (!isFinite(t) || df < 1) return null;
+        const absT = Math.abs(t);
+        const logC = lnGamma((df+1)/2) - lnGamma(df/2) - 0.5*Math.log(df*Math.PI);
+        const pdf = x => Math.exp(logC - ((df+1)/2)*Math.log(1 + x*x/df));
+        const n = 2000, h = absT/n;
+        let s = pdf(0) + pdf(absT);
+        for (let i=1;i<n;i++) s += pdf(i*h) * (i%2===0 ? 2 : 4);
+        const cdf0toT = s*h/3;                  // พื้นที่จาก 0 ถึง |t|
+        let p = 0.5 - cdf0toT;                  // หางเดียว
+        if (p < 0) p = 0;
+        return t >= 0 ? p : 1 - p;
+    }
+
+    function renderResearchStatsBlock(pairs) {
+        const box = document.getElementById('ui-research-stats-block');
+        if (!box) return;
+        const n = pairs.length;
+
+        if (n === 0) {
+            box.innerHTML = `<div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:20px;color:var(--text-sub);font-size:14px;">
+                📐 <b>สถิติเพื่อการนำเสนอผลการทดลอง</b> — ยังไม่มีนักเรียนที่ทำครบทั้ง Pre-test และ Post-test จึงยังคำนวณไม่ได้</div>`;
+            return;
+        }
+
+        const pre = pairs.map(p=>p.prePct), post = pairs.map(p=>p.postPct);
+        const uniformTotal = pairs.every(p => p.total === pairs[0].total) ? pairs[0].total : null;
+
+        const meanPre = statMean(pre), meanPost = statMean(post);
+        const sdPre = statSD(pre), sdPost = statSD(post);
+        const meanGain = meanPost - meanPre;
+
+        // คะแนนพัฒนาการสัมพัทธ์เฉลี่ย + การแจกแจงระดับ
+        const rgList = pairs.map(p => p.prePct >= 100 ? null : (p.postPct - p.prePct)/(100 - p.prePct)*100);
+        const rgValid = rgList.filter(v => v !== null);
+        const meanRG = rgValid.length ? statMean(rgValid) : null;
+        const levelCount = { 'สูงมาก':0, 'สูง':0, 'กลาง':0, 'ต้น':0, 'ถดถอย':0 };
+        rgValid.forEach(v => levelCount[relativeGainLevel(v)]++);
+
+        // ดัชนีประสิทธิผล E.I. (คิดบนสเกลร้อยละ — เทียบเท่าสูตรคะแนนดิบเมื่อคะแนนเต็มเท่ากันทุกคน)
+        const sumPre = pre.reduce((a,b)=>a+b,0), sumPost = post.reduce((a,b)=>a+b,0);
+        const eiDenom = n*100 - sumPre;
+        const ei = eiDenom > 0 ? (sumPost - sumPre)/eiDenom : null;
+
+        // Paired t-test (dependent samples)
+        let tVal = null, df = null, pVal = null, tVerdict = '';
+        if (n >= 2) {
+            const d = pairs.map(p => p.postPct - p.prePct);
+            const dMean = statMean(d), dSD = statSD(d);
+            df = n - 1;
+            if (dSD !== null && dSD > 0) {
+                tVal = dMean / (dSD/Math.sqrt(n));
+                pVal = tTestPValueOneTailed(tVal, df);
+                if (pVal !== null) {
+                    tVerdict = pVal < 0.05
+                        ? `คะแนน Post-test สูงกว่า Pre-test <b style="color:#28a745;">อย่างมีนัยสำคัญทางสถิติที่ระดับ .05</b> ${pVal < 0.01 ? '(และที่ระดับ .01)' : ''}`
+                        : `ความแตกต่างของคะแนน <b style="color:#fd7e14;">ยังไม่มีนัยสำคัญทางสถิติที่ระดับ .05</b>`;
+                }
+            } else if (dSD === 0) {
+                tVerdict = 'ทุกคนมีผลต่างคะแนนเท่ากันหมด (S.D. ของผลต่าง = 0) จึงคำนวณค่า t ไม่ได้';
+            }
+        }
+
+        const fmt = (v,d=2) => v === null || v === undefined || Number.isNaN(v) ? '-' : v.toFixed(d);
+        const rawNote = uniformTotal ? ` (คะแนนเต็ม ${uniformTotal} ข้อ)` : ' (คะแนนเต็มต่างชุดกัน จึงรายงานเป็นร้อยละ)';
+
+        const levelRows = Object.entries(levelCount).filter(([,c])=>c>0)
+            .map(([lv,c]) => `<span style="display:inline-block;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:3px 12px;margin:2px 4px 2px 0;font-size:12px;">${lv}: <b>${c} คน</b></span>`).join('');
+
+        box.innerHTML = `
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+                <h4 style="margin:0;font-size:15px;font-weight:700;">📐 สถิติเพื่อการนำเสนอผลการทดลอง (n = ${n} คนที่ทำครบ Pre+Post)${rawNote}</h4>
+                <button class="btn-secondary-sm" onclick="copyResearchSummaryText()">📋 คัดลอกสรุปผล</button>
+            </div>
+
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px;">
+                <thead><tr style="background:rgba(0,0,0,0.04);">
+                    <th style="padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);">การทดสอบ</th>
+                    <th style="padding:9px 12px;text-align:center;border-bottom:2px solid var(--border);">n</th>
+                    <th style="padding:9px 12px;text-align:center;border-bottom:2px solid var(--border);">ค่าเฉลี่ย (x̄)</th>
+                    <th style="padding:9px 12px;text-align:center;border-bottom:2px solid var(--border);">S.D.</th>
+                </tr></thead>
+                <tbody>
+                    <tr><td style="padding:9px 12px;border-bottom:1px solid var(--border);">🟠 ก่อนเรียน (Pre-test)</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);">${n}</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);font-weight:bold;color:#fd7e14;">${fmt(meanPre,1)}%</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);">${fmt(sdPre)}</td></tr>
+                    <tr><td style="padding:9px 12px;border-bottom:1px solid var(--border);">🟢 หลังเรียน (Post-test)</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);">${n}</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);font-weight:bold;color:#28a745;">${fmt(meanPost,1)}%</td>
+                        <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);">${fmt(sdPost)}</td></tr>
+                </tbody>
+            </table>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;">
+                <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:4px;">ผลต่างคะแนนเฉลี่ย (Gain)</div>
+                    <div style="font-size:24px;font-weight:bold;color:${meanGain>=0?'#28a745':'#dc3545'};">${meanGain>=0?'+':''}${fmt(meanGain,1)}%</div>
+                    <div style="font-size:12px;color:var(--text-sub);">Post − Pre</div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:4px;">พัฒนาการสัมพัทธ์เฉลี่ย</div>
+                    <div style="font-size:24px;font-weight:bold;color:${relativeGainColor(meanRG)};">${fmt(meanRG,1)}${meanRG!==null?'%':''}</div>
+                    <div style="font-size:12px;color:var(--text-sub);">ระดับ: <b>${relativeGainLevel(meanRG)}</b> (ศิริชัย กาญจนวาสี, 2552)</div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:4px;">ดัชนีประสิทธิผล (E.I.)</div>
+                    <div style="font-size:24px;font-weight:bold;color:${ei!==null&&ei>=0.5?'#28a745':'#fd7e14'};">${fmt(ei,4)}</div>
+                    <div style="font-size:12px;color:var(--text-sub);">${ei!==null ? (ei>=0.5?'✅ ผ่านเกณฑ์ ≥ 0.50':'⚠️ ต่ำกว่าเกณฑ์ 0.50') : '-'} (เผชิญ กิจระการ และสมนึก ภัททิยธนี, 2545)</div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;margin-bottom:4px;">t-test (Dependent)</div>
+                    <div style="font-size:24px;font-weight:bold;">t = ${fmt(tVal)}</div>
+                    <div style="font-size:12px;color:var(--text-sub);">df = ${df!==null?df:'-'}, p ${pVal!==null?(pVal<0.001?'< .001':'= '+pVal.toFixed(4)):'= -'} (หางเดียว)</div>
+                </div>
+            </div>
+
+            ${rgValid.length ? `<div style="font-size:13px;margin-bottom:10px;"><b>การแจกแจงระดับพัฒนาการสัมพัทธ์:</b><br>${levelRows}</div>` : ''}
+            ${tVerdict ? `<div style="font-size:13px;background:rgba(111,66,193,0.06);border-left:3px solid #6f42c1;border-radius:6px;padding:10px 14px;">🧪 <b>สรุปผลการทดสอบสมมติฐาน:</b> ${tVerdict}</div>` : (n < 2 ? `<div style="font-size:13px;color:var(--text-sub);">* t-test ต้องมีผู้เรียนที่ทำครบทั้ง Pre และ Post อย่างน้อย 2 คน</div>` : '')}
+            <div style="font-size:11px;color:var(--text-sub);margin-top:12px;line-height:1.7;">อ้างอิงสูตร: พัฒนาการสัมพัทธ์ = (Post−Pre)/(เต็ม−Pre)×100 — ศิริชัย กาญจนวาสี (2552, น.268) · E.I. = (ΣPost−ΣPre)/(n×เต็ม−ΣPre) — Goodman, Fletcher &amp; Schneider (1980); เผชิญ กิจระการ และสมนึก ภัททิยธนี (2545) · Paired t-test — Student (1908)</div>
+        </div>`;
+
+        // เก็บข้อความสรุปไว้ให้ปุ่มคัดลอก
+        const sigText = pVal !== null ? (pVal < 0.05 ? `อย่างมีนัยสำคัญทางสถิติที่ระดับ .05 (t(${df}) = ${fmt(tVal)}, p ${pVal<0.001?'< .001':'= '+pVal.toFixed(4)})` : `อย่างไม่มีนัยสำคัญทางสถิติที่ระดับ .05 (t(${df}) = ${fmt(tVal)}, p = ${pVal.toFixed(4)})`) : '';
+        latestResearchSummaryText =
+`ผลการทดลอง (n = ${n})${uniformTotal ? ` คะแนนเต็ม ${uniformTotal} ข้อ` : ''}
+Pre-test:  ค่าเฉลี่ย ${fmt(meanPre,1)}%  S.D. ${fmt(sdPre)}
+Post-test: ค่าเฉลี่ย ${fmt(meanPost,1)}%  S.D. ${fmt(sdPost)}
+ผลต่างคะแนนเฉลี่ย (Gain) = ${meanGain>=0?'+':''}${fmt(meanGain,1)}%
+คะแนนพัฒนาการสัมพัทธ์เฉลี่ย = ${fmt(meanRG,1)}% (ระดับ${relativeGainLevel(meanRG)}) [ศิริชัย กาญจนวาสี, 2552]
+ดัชนีประสิทธิผล (E.I.) = ${fmt(ei,4)} ${ei!==null?(ei>=0.5?'(ผ่านเกณฑ์ 0.50)':'(ต่ำกว่าเกณฑ์ 0.50)'):''} [เผชิญ กิจระการ และสมนึก ภัททิยธนี, 2545]
+${sigText ? 'นักเรียนมีคะแนนหลังเรียนสูงกว่าก่อนเรียน' + sigText : ''}`;
+    }
+
+    let latestResearchSummaryText = '';
+    window.copyResearchSummaryText = () => {
+        if (!latestResearchSummaryText) return;
+        navigator.clipboard.writeText(latestResearchSummaryText)
+            .then(() => emitToastNotification('📋 คัดลอกสรุปผลการทดลองแล้ว นำไปวางในรายงานได้เลย'))
+            .catch(() => emitToastNotification('⚠️ คัดลอกไม่สำเร็จ'));
+    };
+
+        function buildIndividualPrePostTable(preMap, postMap, totalQ) {
+        const container = document.getElementById('ui-individual-prepost-table');
+        const allStudents = new Set([
+            ...Object.values(preMap).map(x => x.studentName),
+            ...Object.values(postMap).map(x => x.studentName)
+        ]);
+
+        if (allStudents.size === 0) {
+            container.innerHTML = '<p style="color:var(--text-sub);text-align:center;padding:20px;">ยังไม่มีข้อมูล Pre-test หรือ Post-test</p>';
+            return;
+        }
+
+        // Group by student
+        let studentMap = {};
+        allStudents.forEach(name => { studentMap[name] = { pre: [], post: [] }; });
+        Object.values(preMap).forEach(r => { if (studentMap[r.studentName]) studentMap[r.studentName].pre.push(r); });
+        Object.values(postMap).forEach(r => { if (studentMap[r.studentName]) studentMap[r.studentName].post.push(r); });
+
+        let rows = '';
+        Object.entries(studentMap).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, data]) => {
+            const preScore = data.pre.length > 0 ? data.pre[0].score : null;
+            const postScore = data.post.length > 0 ? data.post[0].score : null;
+            const total = (data.pre[0]?.total || data.post[0]?.total || totalQ || 1);
+            const prePct = preScore !== null ? (preScore/total*100).toFixed(1) : '-';
+            const postPct = postScore !== null ? (postScore/total*100).toFixed(1) : '-';
+            const diff = (preScore !== null && postScore !== null) ? ((postScore - preScore)/total*100).toFixed(1) : '-';
+            const diffColor = diff !== '-' ? (parseFloat(diff) >= 0 ? '#28a745' : '#dc3545') : 'var(--text-sub)';
+            const diffPrefix = diff !== '-' && parseFloat(diff) > 0 ? '+' : '';
+
+            // คะแนนพัฒนาการสัมพัทธ์รายบุคคล (ศิริชัย กาญจนวาสี, 2552)
+            let rgCell = '<span style="color:var(--text-sub);font-size:12px;">-</span>';
+            if (preScore !== null && postScore !== null) {
+                if (preScore >= total) {
+                    rgCell = '<span style="color:#28a745;font-size:12px;">เต็มตั้งแต่ Pre 💯</span>';
+                } else {
+                    const rg = (postScore - preScore) / (total - preScore) * 100;
+                    rgCell = `<span style="font-weight:bold;color:${relativeGainColor(rg)};">${rg.toFixed(1)}%</span><br><small style="color:var(--text-sub);">ระดับ${relativeGainLevel(rg)}</small>`;
+                }
+            }
+            const preBar = preScore !== null ? Math.round(preScore/total*100) : 0;
+            const postBar = postScore !== null ? Math.round(postScore/total*100) : 0;
+
+            rows += `<tr>
+                <td style="font-weight:600;">${name}</td>
+                <td style="text-align:center;">
+                    ${preScore !== null ? `<span style="font-weight:bold;color:#fd7e14;">${preScore}/${total}</span><br><small style="color:var(--text-sub);">${prePct}%</small>` : '<span style="color:var(--text-sub);font-size:12px;">ยังไม่ทำ</span>'}
+                </td>
+                <td style="text-align:center;">
+                    ${postScore !== null ? `<span style="font-weight:bold;color:#28a745;">${postScore}/${total}</span><br><small style="color:var(--text-sub);">${postPct}%</small>` : '<span style="color:var(--text-sub);font-size:12px;">ยังไม่ทำ</span>'}
+                </td>
+                <td style="text-align:center;"><span style="font-weight:bold;font-size:16px;color:${diffColor};">${diffPrefix}${diff}${diff !== '-' ? '%' : ''}</span></td>
+                <td style="text-align:center;">${rgCell}</td>
+                <td>
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:10px;color:#fd7e14;width:28px;">Pre</span>
+                            <div style="flex:1;background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+                                <div style="height:100%;background:#fd7e14;border-radius:999px;width:${preBar}%;"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:10px;color:#28a745;width:28px;">Post</span>
+                            <div style="flex:1;background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+                                <div style="height:100%;background:#28a745;border-radius:999px;width:${postBar}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        container.innerHTML = `
+            <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+                <thead>
+                    <tr style="background:rgba(0,0,0,0.03);">
+                        <th style="padding:10px 12px;text-align:left;font-size:13px;border-bottom:2px solid var(--border);">ชื่อนักเรียน</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:13px;border-bottom:2px solid var(--border);color:#fd7e14;">🟠 Pre-test</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:13px;border-bottom:2px solid var(--border);color:#28a745;">🟢 Post-test</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:13px;border-bottom:2px solid var(--border);">Δ การเปลี่ยนแปลง</th>
+                        <th style="padding:10px 12px;text-align:center;font-size:13px;border-bottom:2px solid var(--border);">พัฒนาการสัมพัทธ์</th>
+                        <th style="padding:10px 12px;text-align:left;font-size:13px;border-bottom:2px solid var(--border);">กราฟเปรียบเทียบ</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <p style="font-size:12px;color:var(--text-sub);margin:0;">* แสดงผลล่าสุดของแต่ละคน | Δ = Post − Pre (%) | พัฒนาการสัมพัทธ์ = (Post−Pre)/(เต็ม−Pre)×100 ตามเกณฑ์ ศิริชัย กาญจนวาสี (2552): >75 สูงมาก, >50 สูง, >25 กลาง, 0–25 ต้น</p>`;
+    }
 
     window.runIndividualStatFilter = () => {
         const option = document.getElementById('sel-stat-individual-filter').value;
@@ -1302,10 +1845,10 @@
             return;
         }
 
-        // For flashcard: keep only best record per student+set (highest streak)
-        // For quiz: keep all attempts (each attempt is meaningful)
         const fcBestMap = {};
         const quizItems = [];
+        const preItems = [];
+        const postItems = [];
 
         array.forEach(item => {
             if (item.type === 'flashcard') {
@@ -1313,6 +1856,10 @@
                 if (!fcBestMap[key] || item.recordValue > fcBestMap[key].recordValue) {
                     fcBestMap[key] = item;
                 }
+            } else if (item.type === 'pretest') {
+                preItems.push(item);
+            } else if (item.type === 'posttest') {
+                postItems.push(item);
             } else {
                 quizItems.push(item);
             }
@@ -1320,17 +1867,25 @@
 
         const fcItems = Object.values(fcBestMap);
 
-        // Sort: quiz by newest, fc by highest streak
-        quizItems.sort((a, b) => {
+        const sortByTime = (a, b) => {
             const tA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(0);
             const tB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(0);
             return tB - tA;
-        });
+        };
+        quizItems.sort(sortByTime);
+        preItems.sort(sortByTime);
+        postItems.sort(sortByTime);
         fcItems.sort((a, b) => b.recordValue - a.recordValue);
 
         const renderItem = (item) => {
             const isQuiz = item.type === 'quiz';
+            const isPre = item.type === 'pretest';
+            const isPost = item.type === 'posttest';
             const isPerfect = item.isPerfect;
+            const total = item.totalQuestions || '-';
+            const scoreLabel = (isQuiz || isPre || isPost) ? `${item.recordValue}${total !== '-' ? '/'+total : ''} คะแนน` : `Streak ${item.recordValue}`;
+            const bgColor = isPre ? '#fd7e14' : isPost ? '#28a745' : isQuiz ? '#6f42c1' : 'var(--primary)';
+            const icon = isPre ? '🟠' : isPost ? '🟢' : isQuiz ? '📝' : '🃏';
             const mistakesHTML = item.wrongQuestions && item.wrongQuestions.length > 0 && item.wrongQuestions[0] !== "ไม่มี (ได้คะแนนเต็ม 💯)"
                 ? item.wrongQuestions.map(q => `<div style="padding:5px 10px;background:rgba(220,53,69,0.06);border-left:3px solid var(--danger);border-radius:4px;font-size:13px;margin-top:4px;">❌ ${q}</div>`).join('')
                 : '';
@@ -1340,7 +1895,7 @@
             <div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;background:var(--bg);">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <div style="width:34px;height:34px;border-radius:50%;background:${isQuiz ? '#6f42c1' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;color:white;font-size:15px;flex-shrink:0;">${isQuiz ? '📝' : '🃏'}</div>
+                        <div style="width:34px;height:34px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;color:white;font-size:15px;flex-shrink:0;">${icon}</div>
                         <div>
                             <div style="font-weight:bold;font-size:14px;">${item.studentName}</div>
                             <div style="font-size:12px;color:var(--text-sub);">${item.setName}${timeStr ? ' · ' + timeStr : ''}</div>
@@ -1348,7 +1903,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
                         ${isPerfect ? `<span style="background:rgba(40,167,69,0.1);color:var(--success);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:bold;">🏆 Perfect</span>` : ''}
-                        <span style="background:rgba(49,130,206,0.1);color:var(--primary);padding:3px 10px;border-radius:999px;font-size:13px;font-weight:bold;">${isQuiz ? `${item.recordValue} คะแนน` : `Streak ${item.recordValue}`}</span>
+                        <span style="background:rgba(49,130,206,0.1);color:var(--primary);padding:3px 10px;border-radius:999px;font-size:13px;font-weight:bold;">${scoreLabel}</span>
                         <button onclick="purgeSingleStatRecord('${item.docId}')" style="background:none;border:none;cursor:pointer;color:var(--text-sub);font-size:15px;padding:4px;" title="ลบ">🗑️</button>
                     </div>
                 </div>
@@ -1356,15 +1911,22 @@
             </div>`;
         };
 
-        // Group: Flashcard best records first, then Quiz attempts
         let html = '';
-        if (fcItems.length > 0) {
-            html += `<div style="font-size:12px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🃏 Flashcard — สถิติสูงสุดต่อคน</div>`;
-            html += fcItems.map(renderItem).join('');
+        if (preItems.length > 0) {
+            html += `<div style="font-size:12px;font-weight:600;color:#fd7e14;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🟠 Pre-test — ผลก่อนเรียน</div>`;
+            html += preItems.map(renderItem).join('');
+        }
+        if (postItems.length > 0) {
+            html += `<div style="font-size:12px;font-weight:600;color:#28a745;text-transform:uppercase;letter-spacing:0.5px;margin:${preItems.length > 0 ? '16px' : '0'} 0 8px;">🟢 Post-test — ผลหลังเรียน</div>`;
+            html += postItems.map(renderItem).join('');
         }
         if (quizItems.length > 0) {
-            html += `<div style="font-size:12px;font-weight:600;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;margin:${fcItems.length > 0 ? '16px' : '0'} 0 8px;">📝 Quiz — ทุกครั้งที่ทำ</div>`;
+            html += `<div style="font-size:12px;font-weight:600;color:#6f42c1;text-transform:uppercase;letter-spacing:0.5px;margin:${(preItems.length+postItems.length) > 0 ? '16px' : '0'} 0 8px;">📝 Quiz — ทุกครั้งที่ทำ</div>`;
             html += quizItems.map(renderItem).join('');
+        }
+        if (fcItems.length > 0) {
+            html += `<div style="font-size:12px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">🃏 Flashcard — สถิติสูงสุดต่อคน</div>`;
+            html += fcItems.map(renderItem).join('');
         }
 
         container.innerHTML = html;
